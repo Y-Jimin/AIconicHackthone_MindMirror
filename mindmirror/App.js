@@ -1,63 +1,48 @@
 import React, { useState } from 'react';
-import { Activity } from 'lucide-react';
+import { SafeAreaView, StatusBar, View, TextInput, TouchableOpacity, Text, StyleSheet, Alert } from 'react-native';
 
-// Components & Screens Import (상대 경로에 주의하세요)
-import Header from './components/Header';
-import TabBar from './components/TabBar';
-import HomeScreen from './screens/HomeScreen';
-import WriteSelectionScreen from './screens/WriteSelectionScreen';
-import ChatScreen from './screens/ChatScreen';
-import ReportScreen from './screens/ReportScreen';
+import Header from './src/components/Header';
+import TabBar from './src/components/TabBar';
+import HomeScreen from './src/screens/HomeScreen';
+import WriteSelectionScreen from './src/screens/WriteSelectionScreen';
+import ChatScreen from './src/screens/ChatScreen';
+import ReportScreen from './src/screens/ReportScreen';
 
-// Data Import
-import { INITIAL_ENTRIES } from './constants/data';
+import { INITIAL_ENTRIES } from './src/constants/data';
 
 export default function App() {
   const [currentTab, setCurrentTab] = useState('home');
-  const [viewMode, setViewMode] = useState('main'); // main, write-select, write-chat, write-diary
+  const [viewMode, setViewMode] = useState('main'); 
   
-  const handleTabChange = (tab) => {
-    if (tab === 'write') {
-      setViewMode('write-select');
-    } else {
-      setCurrentTab(tab);
-      setViewMode('main');
-    }
-  };
+  // [핵심] 모든 기록 데이터를 App에서 총괄 관리
+  const [entries, setEntries] = useState(INITIAL_ENTRIES);
+  const [tempDiaryText, setTempDiaryText] = useState('');
 
-  const renderContent = () => {
-    if (viewMode === 'write-select') {
-      return <WriteSelectionScreen onSelect={(type) => setViewMode(type === 'chat' ? 'write-chat' : 'write-diary')} />;
+  // 일기 저장 기능
+  const saveDiary = () => {
+    if (!tempDiaryText.trim()) {
+      Alert.alert("알림", "내용을 입력해주세요.");
+      return;
     }
+
+    const todayStr = new Date().toISOString().split('T')[0]; // YYYY-MM-DD
+
+    const newEntry = {
+      id: Date.now(),
+      date: todayStr,
+      type: 'diary',
+      mood: 'neutral', // (추후 감정선택 기능 추가 가능)
+      summary: tempDiaryText.length > 15 ? tempDiaryText.substring(0, 15) + '...' : tempDiaryText,
+      content: tempDiaryText
+    };
+
+    setEntries(prev => [...prev, newEntry]); // 데이터 추가
+    setTempDiaryText(''); // 입력창 초기화
     
-    if (viewMode === 'write-chat') {
-      return <ChatScreen onFinish={() => setViewMode('main')} />;
-    }
-
-    // Placeholder for Diary text input mode
-    if (viewMode === 'write-diary') {
-      return (
-         <div className="p-6 animate-fade-in h-full flex flex-col">
-           <textarea 
-            placeholder="오늘의 이야기를 자유롭게 적어주세요..." 
-            className="w-full flex-1 resize-none text-lg leading-relaxed focus:outline-none text-gray-700 placeholder-gray-300"
-            autoFocus
-           />
-           <button onClick={() => setViewMode('main')} className="w-full bg-indigo-600 text-white py-4 rounded-xl font-bold mt-4 shadow-lg shadow-indigo-200">
-             기록 저장하기
-           </button>
-         </div>
-      );
-    }
-
-    // Tab Navigation Content
-    if (currentTab === 'home') {
-      return <HomeScreen entries={INITIAL_ENTRIES} onDateSelect={() => {}} />;
-    }
-    if (currentTab === 'report') {
-      return <ReportScreen />;
-    }
-    return null;
+    // 저장 후 홈(달력)으로 이동
+    setViewMode('main');
+    setCurrentTab('home'); 
+    Alert.alert("저장 완료", "오늘의 기록이 달력에 추가되었습니다!");
   };
 
   const getHeaderTitle = () => {
@@ -69,33 +54,83 @@ export default function App() {
     return '';
   };
 
+  const renderContent = () => {
+    if (viewMode === 'write-select') {
+      return <WriteSelectionScreen onSelect={(type) => setViewMode(type === 'chat' ? 'write-chat' : 'write-diary')} />;
+    }
+    
+    if (viewMode === 'write-chat') {
+      return <ChatScreen onFinish={() => setViewMode('main')} />;
+    }
+    
+    // 일기 작성 화면
+    if (viewMode === 'write-diary') {
+      return (
+        <View style={{ flex: 1, padding: 20 }}>
+          <Text style={{color: '#6B7280', marginBottom: 10}}>{new Date().toLocaleDateString()}의 기록</Text>
+          <TextInput 
+            multiline 
+            style={styles.diaryInput} 
+            placeholder="오늘 하루는 어땠나요? 자유롭게 적어주세요..." 
+            value={tempDiaryText}
+            onChangeText={setTempDiaryText}
+          />
+          <TouchableOpacity onPress={saveDiary} style={styles.saveBtn}>
+            <Text style={{ color: 'white', fontWeight: 'bold', fontSize: 16 }}>기록 저장하기</Text>
+          </TouchableOpacity>
+        </View>
+      );
+    }
+    
+    // HomeScreen에 entries 데이터 전달 (달력 표시용)
+    if (currentTab === 'home') {
+      return <HomeScreen entries={entries} onDateSelect={() => {}} />;
+    }
+    
+    if (currentTab === 'report') {
+      return <ReportScreen />;
+    }
+    return null;
+  };
+
   return (
-    <div className="min-h-screen bg-gray-100 flex items-center justify-center font-sans">
-      {/* Mobile Container Wrapper */}
-      <div className="w-full max-w-md h-screen sm:h-[850px] bg-white sm:rounded-[3rem] shadow-2xl overflow-hidden relative flex flex-col border-4 border-gray-900/5">
-        
-        {/* Status Bar Simulation */}
-        <div className="h-10 bg-white w-full flex items-center justify-between px-6 pt-2 sticky top-0 z-50 text-xs font-semibold text-gray-900">
-           <span>9:41</span>
-           <div className="flex gap-1.5 items-center">
-             <Activity size={12} />
-             <div className="w-5 h-2.5 bg-gray-900 rounded-full" />
-           </div>
-        </div>
-
-        <Header 
-          title={getHeaderTitle()} 
-          onBack={viewMode !== 'main' ? () => setViewMode('main') : null}
-        />
-
-        <div className="flex-1 overflow-y-auto overflow-x-hidden scrollbar-hide relative">
-          {renderContent()}
-        </div>
-
-        {viewMode === 'main' && (
-          <TabBar currentTab={currentTab} setCurrentTab={handleTabChange} />
-        )}
-      </div>
-    </div>
+    <SafeAreaView style={styles.container}>
+      <StatusBar barStyle="dark-content" />
+      <Header 
+        title={getHeaderTitle()} 
+        onBack={viewMode !== 'main' ? () => setViewMode('main') : null}
+      />
+      <View style={{ flex: 1 }}>
+        {renderContent()}
+      </View>
+      {viewMode === 'main' && <TabBar currentTab={currentTab} setCurrentTab={(tab) => {
+        setCurrentTab(tab);
+        if(tab === 'write') setViewMode('write-select');
+        else setViewMode('main');
+      }} />}
+    </SafeAreaView>
   );
 }
+
+const styles = StyleSheet.create({
+  container: { flex: 1, backgroundColor: '#F9FAFB' },
+  diaryInput: { 
+    flex: 1, 
+    fontSize: 16, 
+    lineHeight: 24, 
+    textAlignVertical: 'top', 
+    backgroundColor: 'white', 
+    padding: 20, 
+    borderRadius: 16, 
+    marginBottom: 20 
+  },
+  saveBtn: { 
+    backgroundColor: '#4F46E5', 
+    padding: 16, 
+    borderRadius: 12, 
+    alignItems: 'center',
+    shadowColor: '#4F46E5', 
+    shadowOpacity: 0.3, 
+    shadowOffset: { width: 0, height: 4 }
+  }
+});

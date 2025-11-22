@@ -1,11 +1,11 @@
 import React from 'react';
-import { Smile, Meh, Frown, Activity } from 'lucide-react';
+import { Smile, Meh, Frown, Activity } from 'lucide-react-native';
 
 export const MOODS = {
-  happy: { icon: <Smile className="w-5 h-5" />, color: 'bg-yellow-100 text-yellow-600', label: '행복' },
-  neutral: { icon: <Meh className="w-5 h-5" />, color: 'bg-gray-100 text-gray-600', label: '평온' },
-  sad: { icon: <Frown className="w-5 h-5" />, color: 'bg-blue-100 text-blue-600', label: '우울' },
-  stressed: { icon: <Activity className="w-5 h-5" />, color: 'bg-red-100 text-red-600', label: '스트레스' },
+  happy: { icon: <Smile size={24} color="#CA8A04" />, color: '#FEF9C3', label: '행복' },
+  neutral: { icon: <Meh size={24} color="#4B5563" />, color: '#F3F4F6', label: '평온' },
+  sad: { icon: <Frown size={24} color="#2563EB" />, color: '#DBEAFE', label: '우울' },
+  stressed: { icon: <Activity size={24} color="#DC2626" />, color: '#FEE2E2', label: '스트레스' },
 };
 
 export const INITIAL_ENTRIES = [
@@ -19,7 +19,7 @@ export const INITIAL_ENTRIES = [
 export const WEEKLY_STATS = [
   { day: '월', score: 60 },
   { day: '화', score: 45 },
-  { day: '수', score: 30 }, // High stress
+  { day: '수', score: 30 },
   { day: '목', score: 70 },
   { day: '금', score: 85 },
   { day: '토', score: 90 },
@@ -27,8 +27,8 @@ export const WEEKLY_STATS = [
 ];
 
 export const KEYWORDS = [
-  { word: '해커톤', count: 15, color: 'bg-indigo-100 text-indigo-700' },
-  { word: '팀플', count: 12, color: 'bg-red-100 text-red-700' },
-  { word: '커피', count: 8, color: 'bg-amber-100 text-amber-700' },
-  { word: '수면', count: 5, color: 'bg-blue-100 text-blue-700' },
+  { word: '해커톤', count: 15, bg: '#E0E7FF', text: '#4338CA' },
+  { word: '팀플', count: 12, bg: '#FEE2E2', text: '#B91C1C' },
+  { word: '커피', count: 8, bg: '#FEF3C7', text: '#B45309' },
+  { word: '수면', count: 5, bg: '#DBEAFE', text: '#1D4ED8' },
 ];
