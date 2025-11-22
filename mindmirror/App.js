@@ -7,42 +7,46 @@ import HomeScreen from './src/screens/HomeScreen';
 import WriteSelectionScreen from './src/screens/WriteSelectionScreen';
 import ChatScreen from './src/screens/ChatScreen';
 import ReportScreen from './src/screens/ReportScreen';
-import DiaryDetailScreen from './src/screens/DiaryDetailScreen'; // 상세화면 import
+import DiaryDetailScreen from './src/screens/DiaryDetailScreen';
+import ProfileScreen from './src/screens/ProfileScreen'; // [신규] 프로필 스크린 import
 
 import { INITIAL_ENTRIES } from './src/constants/data';
 
 export default function App() {
   const [currentTab, setCurrentTab] = useState('home');
-  const [viewMode, setViewMode] = useState('main'); // main, write-select, write-chat, write-diary, diary-detail
+  const [viewMode, setViewMode] = useState('main'); // main, write-select, write-chat, write-diary, diary-detail, profile
   
   const [entries, setEntries] = useState(INITIAL_ENTRIES);
   const [tempDiaryText, setTempDiaryText] = useState('');
-  const [selectedEntry, setSelectedEntry] = useState(null); // 선택된 일기 담을 곳
+  const [selectedEntry, setSelectedEntry] = useState(null);
 
-  // [핵심] 뒤로 가기 네비게이션 로직
+  // [신규] 사용자 정보 상태 관리
+  const [userInfo, setUserInfo] = useState({
+    name: '민수',
+    birthday: '', // YYYY/MM/DD
+    photo: false  // 프로필 사진 유무
+  });
+
+  // 뒤로 가기 로직
   const goBack = () => {
-    if (viewMode === 'diary-detail') {
-      setViewMode('main'); // 상세화면 -> 홈
+    if (viewMode === 'diary-detail' || viewMode === 'profile') {
+      setViewMode('main'); // 상세/프로필 -> 홈
     } else if (viewMode === 'write-chat' || viewMode === 'write-diary') {
-      setViewMode('write-select'); // 작성중 -> 선택화면
+      setViewMode('write-select');
     } else if (viewMode === 'write-select') {
-      setViewMode('main'); // 선택화면 -> 홈
+      setViewMode('main'); 
       setCurrentTab('home');
     } else {
-      // 메인 화면에서는 기본 동작 (앱 종료)
       return false;
     }
     return true;
   };
 
-  // 하드웨어 뒤로가기 버튼 감지
   useEffect(() => {
     const backHandler = BackHandler.addEventListener(
       'hardwareBackPress',
       () => {
-        if (viewMode !== 'main') {
-          return goBack();
-        }
+        if (viewMode !== 'main') return goBack();
         return false; 
       }
     );
@@ -54,7 +58,6 @@ export default function App() {
       Alert.alert("알림", "내용을 입력해주세요.");
       return;
     }
-
     const d = new Date();
     const todayStr = `${d.getFullYear()}/${String(d.getMonth() + 1).padStart(2, '0')}/${String(d.getDate()).padStart(2, '0')}`;
 
@@ -69,10 +72,16 @@ export default function App() {
 
     setEntries(prev => [...prev, newEntry]);
     setTempDiaryText('');
-    
     setViewMode('main');
     setCurrentTab('home'); 
     Alert.alert("저장 완료", "오늘의 기록이 달력에 추가되었습니다!");
+  };
+
+  // [신규] 프로필 저장 함수
+  const handleProfileSave = (newInfo) => {
+    setUserInfo({ ...userInfo, ...newInfo });
+    setViewMode('main'); // 저장 후 홈으로 이동
+    Alert.alert("완료", "회원 정보가 수정되었습니다.");
   };
 
   const getHeaderTitle = () => {
@@ -80,6 +89,7 @@ export default function App() {
     if (viewMode === 'write-chat') return 'AI 마인드 봇';
     if (viewMode === 'write-diary') return '오늘의 일기';
     if (viewMode === 'diary-detail') return '기록 상세';
+    if (viewMode === 'profile') return '내 정보'; // [신규]
     if (currentTab === 'home') return 'Mind Mirror';
     if (currentTab === 'report') return '분석 리포트';
     return '';
@@ -90,10 +100,8 @@ export default function App() {
     if (viewMode === 'write-chat') return <ChatScreen onFinish={() => setViewMode('main')} />;
     
     if (viewMode === 'write-diary') {
-      // [수정] 날짜 표시 포맷 (년 월 일)
       const d = new Date();
       const dateDisplay = `${d.getFullYear()}년 ${d.getMonth() + 1}월 ${d.getDate()}일`;
-
       return (
         <View style={{ flex: 1, padding: 20 }}>
           <Text style={{color: '#6B7280', marginBottom: 10, fontSize: 16, fontWeight: '600'}}>
@@ -113,34 +121,49 @@ export default function App() {
       );
     }
 
-    // [신규] 상세 보기 화면
-    if (viewMode === 'diary-detail') {
-      return <DiaryDetailScreen entry={selectedEntry} />;
-    }
+    if (viewMode === 'diary-detail') return <DiaryDetailScreen entry={selectedEntry} />;
     
+    // [신규] 프로필 화면 연결
+    if (viewMode === 'profile') {
+      return (
+        <ProfileScreen 
+          userInfo={userInfo} 
+          onSave={handleProfileSave}
+          onBack={() => setViewMode('main')} // 저장 안하고 나가기
+        />
+      );
+    }
+
     if (currentTab === 'report') return <ReportScreen />;
     
+    // Home에 userInfo와 onProfilePress 전달
     return <HomeScreen 
       entries={entries} 
+      userInfo={userInfo}
       onDateSelect={() => {}} 
       onEntrySelect={(entry) => {
         setSelectedEntry(entry);
         setViewMode('diary-detail');
       }}
+      onProfilePress={() => setViewMode('profile')}
     />;
   };
 
   return (
     <SafeAreaView style={styles.container}>
       <StatusBar barStyle="dark-content" />
-      <Header 
-        title={getHeaderTitle()} 
-        // [수정] 메인이 아닐 땐 항상 goBack 함수 연결
-        onBack={viewMode !== 'main' ? goBack : null}
-      />
+      {/* 프로필 화면일 때는 Header를 숨김 (ProfileScreen 내부에 커스텀 헤더가 있으므로) */}
+      {viewMode !== 'profile' && (
+        <Header 
+          title={getHeaderTitle()} 
+          onBack={viewMode !== 'main' ? goBack : null}
+        />
+      )}
+      
       <View style={{ flex: 1 }}>
         {renderContent()}
       </View>
+      
       {viewMode === 'main' && (
         <TabBar currentTab={currentTab} setCurrentTab={(tab) => {
           setCurrentTab(tab);
