@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { View, Text, ScrollView, TouchableOpacity, StyleSheet, Image } from 'react-native';
-import { MOODS } from '../constants/data'; // User 아이콘 제거
+import { MOODS } from '../constants/data';
 
 const HomeScreen = ({ entries, userInfo, onDateSelect, onEntrySelect, onProfilePress }) => {
   const [currentDate, setCurrentDate] = useState(new Date());
@@ -39,7 +39,6 @@ const HomeScreen = ({ entries, userInfo, onDateSelect, onEntrySelect, onProfileP
           </Text>
         </View>
         
-        {/* [수정] 프로필 아이콘 */}
         <TouchableOpacity onPress={onProfilePress} style={styles.profileIconWrapper}>
           <Image 
             source={require('../../assets/profile.png')} 
@@ -71,6 +70,7 @@ const HomeScreen = ({ entries, userInfo, onDateSelect, onEntrySelect, onProfileP
           {Array.from({ length: daysInMonth }, (_, i) => i + 1).map((day) => {
             const dateStr = `${year}/${String(month + 1).padStart(2, '0')}/${String(day).padStart(2, '0')}`;
             const entry = entries.find(e => e.date === dateStr);
+            
             const isSelected = dateStr === selectedDateStr;
             const isToday = dateStr === getTodayStr();
 
@@ -82,13 +82,21 @@ const HomeScreen = ({ entries, userInfo, onDateSelect, onEntrySelect, onProfileP
               }
             }
 
+            // 배경색 결정 로직
+            let cellBackgroundColor = 'transparent';
+            if (isSelected) {
+                cellBackgroundColor = '#4F46E5'; // 선택됨 (진한 남색)
+            } else if (entry) {
+                cellBackgroundColor = MOODS[entry.mood]?.color || '#F3F4F6';
+            }
+
             return (
               <TouchableOpacity 
                 key={day} 
                 style={[
-                  styles.dateCell, 
-                  isSelected && styles.selectedCell,
-                  isToday && !isSelected && styles.todayCellBorder
+                  styles.dateCell,
+                  { backgroundColor: cellBackgroundColor }
+                  // [수정] todayCellBorder 제거됨 (테두리 없음)
                 ]}
                 onPress={() => setSelectedDateStr(dateStr)}
               >
@@ -99,13 +107,6 @@ const HomeScreen = ({ entries, userInfo, onDateSelect, onEntrySelect, onProfileP
                 ]}>{day}</Text>
                 
                 {isBirthday && <Text style={styles.birthdayEmoji}>🎂</Text>}
-
-                {entry && !isBirthday && (
-                  <View style={[
-                    styles.dot, 
-                    { backgroundColor: MOODS[entry.mood]?.color === '#FEF9C3' ? '#FACC15' : '#60A5FA' }
-                  ]} />
-                )}
               </TouchableOpacity>
             );
           })}
@@ -158,7 +159,6 @@ const styles = StyleSheet.create({
   greetingText: { fontSize: 24, fontWeight: 'bold', color: '#1F2937', lineHeight: 32 },
   
   profileIconWrapper: {},
-  // [수정] 프로필 이미지 스타일 (border 추가)
   profileImageSmall: { width: 48, height: 48, borderRadius: 24, borderWidth: 1, borderColor: '#E5E7EB' },
 
   section: { padding: 20 },
@@ -168,14 +168,29 @@ const styles = StyleSheet.create({
   sectionTitle: { fontSize: 18, fontWeight: 'bold', color: '#1F2937' },
   calendarGrid: { flexDirection: 'row', flexWrap: 'wrap' },
   dayLabel: { width: '14.28%', textAlign: 'center', color: '#9CA3AF', fontSize: 12, marginBottom: 8 },
-  dateCell: { width: '14.28%', height: 50, alignItems: 'center', justifyContent: 'center', marginBottom: 4, borderWidth: 1, borderColor: 'transparent', borderRadius: 12 },
-  selectedCell: { backgroundColor: '#4F46E5', borderColor: '#4F46E5' },
-  todayCellBorder: { borderColor: '#4F46E5' },
+  
+  // [수정] 테두리(border) 관련 속성 제거
+  dateCell: { 
+    width: '14.28%', 
+    height: 50, 
+    alignItems: 'center', 
+    justifyContent: 'center', 
+    marginBottom: 4, 
+    borderRadius: 12,
+    // borderWidth, borderColor 제거됨
+  },
+  
+  // [수정] 선택된 셀도 배경색만 변경 (테두리 제거)
+  selectedCell: { 
+    backgroundColor: '#4F46E5',
+  },
+  
+  // todayCellBorder 스타일 삭제됨
+  
   dateNum: { fontSize: 14, color: '#374151' },
   selectedNum: { color: 'white', fontWeight: 'bold' },
-  todayNum: { color: '#4F46E5', fontWeight: 'bold' },
+  todayNum: { color: '#4F46E5', fontWeight: 'bold' }, // 오늘 날짜는 굵고 파란색으로 구별
   
-  dot: { width: 6, height: 6, borderRadius: 3, marginTop: 4 },
   birthdayEmoji: { fontSize: 10, marginTop: 2 },
 
   emptyState: { alignItems: 'center', justifyContent: 'center', padding: 40, backgroundColor: 'white', borderRadius: 16, marginTop: 10, minHeight: 200 },
