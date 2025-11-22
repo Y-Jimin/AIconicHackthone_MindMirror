@@ -8,12 +8,27 @@ export const MOODS = {
   stressed: { icon: <Activity size={24} color="#DC2626" />, color: '#FEE2E2', label: '스트레스' },
 };
 
+// [수정] 날짜 형식을 YYYY/MM/DD 로 변경
+const today = new Date();
+const todayStr = `${today.getFullYear()}/${String(today.getMonth() + 1).padStart(2, '0')}/${String(today.getDate()).padStart(2, '0')}`;
+
 export const INITIAL_ENTRIES = [
-  { id: 1, date: '2023-10-01', type: 'diary', mood: 'happy', summary: '친구들과 맛집 탐방' },
-  { id: 2, date: '2023-10-02', type: 'chat', mood: 'neutral', summary: '평범한 하루, 독서' },
-  { id: 3, date: '2023-10-03', type: 'chat', mood: 'stressed', summary: '과제 마감 압박' },
-  { id: 4, date: '2023-10-05', type: 'diary', mood: 'sad', summary: '비가 와서 기분이 처짐' },
-  { id: 5, date: '2023-10-08', type: 'chat', mood: 'happy', summary: '해커톤 아이디어 구상' },
+  { 
+    id: 1, 
+    date: todayStr, 
+    type: 'diary', 
+    mood: 'happy', 
+    summary: '해커톤 시작! 팀 빌딩 완료',
+    content: '드디어 해커톤 날이다. 팀원들과 아이디어가 잘 맞아서 기분이 좋다.'
+  },
+  { 
+    id: 2, 
+    date: '2023/10/02', 
+    type: 'chat', 
+    mood: 'neutral', 
+    summary: '주제 선정 고민 상담',
+    content: 'AI 주제로 할지, 헬스케어로 할지 고민이다.'
+  },
 ];
 
 export const WEEKLY_STATS = [

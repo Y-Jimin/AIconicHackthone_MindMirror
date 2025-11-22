@@ -1,38 +1,38 @@
 import React, { useState } from 'react';
-import { View, Text, ScrollView, TouchableOpacity, StyleSheet } from 'react-native';
-import { User, Sparkles, ChevronLeft, ChevronRight, Calendar } from 'lucide-react-native';
+import { View, Text, ScrollView, TouchableOpacity, StyleSheet, Image } from 'react-native';
+import { User, Calendar } from 'lucide-react-native';
 import { MOODS } from '../constants/data';
 
-const HomeScreen = ({ entries, onDateSelect }) => {
-  // 1. 현재 보고 있는 달력 날짜 (연/월 계산용)
+const HomeScreen = ({ entries, onDateSelect, onEntrySelect }) => {
   const [currentDate, setCurrentDate] = useState(new Date());
-  // 2. 사용자가 선택한 날짜 (YYYY-MM-DD 문자열)
-  const [selectedDateStr, setSelectedDateStr] = useState(new Date().toISOString().split('T')[0]);
+  
+  const getTodayStr = () => {
+    const d = new Date();
+    return `${d.getFullYear()}/${String(d.getMonth() + 1).padStart(2, '0')}/${String(d.getDate()).padStart(2, '0')}`;
+  };
+  
+  const [selectedDateStr, setSelectedDateStr] = useState(getTodayStr());
 
   const year = currentDate.getFullYear();
-  const month = currentDate.getMonth(); // 0 ~ 11
+  const month = currentDate.getMonth(); 
   
-  // 달력 계산: 이번 달 1일의 요일, 마지막 날짜
   const firstDayOfMonth = new Date(year, month, 1).getDay(); 
   const daysInMonth = new Date(year, month + 1, 0).getDate();
 
-  // 월 이동 함수
   const changeMonth = (increment) => {
     const newDate = new Date(currentDate);
     newDate.setMonth(newDate.getMonth() + increment);
     setCurrentDate(newDate);
   };
 
-  // 선택된 날짜의 기록 필터링
   const selectedEntries = entries.filter(e => e.date === selectedDateStr);
 
   return (
     <ScrollView style={styles.screen} contentContainerStyle={{ paddingBottom: 100 }}>
-      {/* 웰컴 섹션 */}
       <View style={styles.welcomeSection}>
         <View>
           <Text style={styles.dateText}>
-            {selectedDateStr === new Date().toISOString().split('T')[0] ? '오늘' : selectedDateStr}
+            {selectedDateStr === getTodayStr() ? `${selectedDateStr} (오늘)` : selectedDateStr}
           </Text>
           <Text style={styles.greetingText}>
             안녕하세요,{"\n"}
@@ -44,15 +44,14 @@ const HomeScreen = ({ entries, onDateSelect }) => {
         </View>
       </View>
 
-      {/* 달력 섹션 */}
       <View style={styles.section}>
         <View style={styles.calendarHeader}>
           <TouchableOpacity onPress={() => changeMonth(-1)} style={styles.arrowBtn}>
-            <ChevronLeft size={24} color="#374151" />
+            <Image source={require('../../assets/left.png')} style={styles.arrowIcon} />
           </TouchableOpacity>
           <Text style={styles.sectionTitle}>{year}년 {month + 1}월</Text>
           <TouchableOpacity onPress={() => changeMonth(1)} style={styles.arrowBtn}>
-            <ChevronRight size={24} color="#374151" />
+            <Image source={require('../../assets/right.png')} style={styles.arrowIcon} />
           </TouchableOpacity>
         </View>
 
@@ -61,17 +60,15 @@ const HomeScreen = ({ entries, onDateSelect }) => {
             <Text key={i} style={styles.dayLabel}>{d}</Text>
           ))}
           
-          {/* 빈 날짜 채우기 */}
           {Array(firstDayOfMonth).fill(null).map((_, i) => (
             <View key={`empty-${i}`} style={styles.dateCell} />
           ))}
 
-          {/* 날짜 렌더링 */}
           {Array.from({ length: daysInMonth }, (_, i) => i + 1).map((day) => {
-            const dateStr = `${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+            const dateStr = `${year}/${String(month + 1).padStart(2, '0')}/${String(day).padStart(2, '0')}`;
             const entry = entries.find(e => e.date === dateStr);
             const isSelected = dateStr === selectedDateStr;
-            const isToday = dateStr === new Date().toISOString().split('T')[0];
+            const isToday = dateStr === getTodayStr();
 
             return (
               <TouchableOpacity 
@@ -89,7 +86,6 @@ const HomeScreen = ({ entries, onDateSelect }) => {
                   isToday && !isSelected && styles.todayNum
                 ]}>{day}</Text>
                 
-                {/* 기록이 있으면 점 표시 */}
                 {entry && (
                   <View style={[
                     styles.dot, 
@@ -102,9 +98,10 @@ const HomeScreen = ({ entries, onDateSelect }) => {
         </View>
       </View>
 
-      {/* 선택된 날짜의 기록 목록 */}
       <View style={styles.section}>
-        <Text style={styles.sectionTitle}>{selectedDateStr}의 기록</Text>
+        {/* [수정] marginBottom: 16 추가로 간격 벌림 */}
+        <Text style={[styles.sectionTitle, { marginBottom: 16 }]}>{selectedDateStr}의 기록</Text>
+        
         {selectedEntries.length === 0 ? (
           <View style={styles.emptyState}>
             <Calendar size={48} color="#E5E7EB" />
@@ -112,7 +109,12 @@ const HomeScreen = ({ entries, onDateSelect }) => {
           </View>
         ) : (
           selectedEntries.map(entry => (
-            <View key={entry.id} style={styles.recentItem}>
+            // [수정] onPress 이벤트 추가 (상세 보기 연결)
+            <TouchableOpacity 
+              key={entry.id} 
+              style={styles.recentItem}
+              onPress={() => onEntrySelect(entry)}
+            >
               <View style={[styles.moodIconBox, { backgroundColor: MOODS[entry.mood]?.color || '#EEE' }]}>
                 {MOODS[entry.mood]?.icon}
               </View>
@@ -125,7 +127,7 @@ const HomeScreen = ({ entries, onDateSelect }) => {
                   <Text numberOfLines={2} style={styles.previewText}>{entry.content}</Text>
                 )}
               </View>
-            </View>
+            </TouchableOpacity>
           ))
         )}
       </View>
@@ -142,12 +144,13 @@ const styles = StyleSheet.create({
   section: { padding: 20 },
   calendarHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 },
   arrowBtn: { padding: 8 },
+  arrowIcon: { width: 24, height: 24, resizeMode: 'contain' },
   sectionTitle: { fontSize: 18, fontWeight: 'bold', color: '#1F2937' },
   calendarGrid: { flexDirection: 'row', flexWrap: 'wrap' },
   dayLabel: { width: '14.28%', textAlign: 'center', color: '#9CA3AF', fontSize: 12, marginBottom: 8 },
-  dateCell: { width: '14.28%', aspectRatio: 1, alignItems: 'center', justifyContent: 'center', marginBottom: 4 },
-  selectedCell: { backgroundColor: '#4F46E5', borderRadius: 12 },
-  todayCellBorder: { borderWidth: 1, borderColor: '#4F46E5', borderRadius: 12 },
+  dateCell: { width: '14.28%', height: 50, alignItems: 'center', justifyContent: 'center', marginBottom: 4, borderWidth: 1, borderColor: 'transparent', borderRadius: 12 },
+  selectedCell: { backgroundColor: '#4F46E5', borderColor: '#4F46E5' },
+  todayCellBorder: { borderColor: '#4F46E5' },
   dateNum: { fontSize: 14, color: '#374151' },
   selectedNum: { color: 'white', fontWeight: 'bold' },
   todayNum: { color: '#4F46E5', fontWeight: 'bold' },
