@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { View, Text, ScrollView, TouchableOpacity, StyleSheet, Image } from 'react-native';
 import { MOODS } from '../constants/data';
 
-const HomeScreen = ({ entries, userInfo, onDateSelect, onEntrySelect, onProfilePress }) => {
+const HomeScreen = ({ entries, userInfo, onDateSelect, onEntrySelect, onProfilePress, onMonthChange }) => {
   const [currentDate, setCurrentDate] = useState(new Date());
   
   const getTodayStr = () => {
@@ -22,6 +22,10 @@ const HomeScreen = ({ entries, userInfo, onDateSelect, onEntrySelect, onProfileP
     const newDate = new Date(currentDate);
     newDate.setMonth(newDate.getMonth() + increment);
     setCurrentDate(newDate);
+    // 부모 컴포넌트에 월 변경 알림
+    if (onMonthChange) {
+      onMonthChange(newDate);
+    }
   };
 
   const monthlyEntries = entries.filter(e => {
@@ -74,7 +78,10 @@ const HomeScreen = ({ entries, userInfo, onDateSelect, onEntrySelect, onProfileP
 
           {Array.from({ length: daysInMonth }, (_, i) => i + 1).map((day) => {
             const dateStr = `${year}/${String(month + 1).padStart(2, '0')}/${String(day).padStart(2, '0')}`;
-            const entry = entries.find(e => e.date === dateStr);
+            // 해당 날짜의 모든 entry 찾기
+            const allEntriesForDate = entries.filter(e => e.date === dateStr);
+            // 실제 DB에서 로드한 일기 데이터만 사용 (isCalendarData가 없는 것만)
+            const entry = allEntriesForDate.find(e => !e.isCalendarData);
             const isSelected = dateStr === selectedDateStr;
             const isToday = dateStr === getTodayStr();
 
@@ -90,7 +97,22 @@ const HomeScreen = ({ entries, userInfo, onDateSelect, onEntrySelect, onProfileP
             if (isSelected) {
                 cellBackgroundColor = '#F472B6'; // 선택됨 (핑크)
             } else if (entry) {
-                cellBackgroundColor = MOODS[entry.mood]?.color || '#F3F4F6';
+                // mood가 있으면 바로 사용 (캘린더 데이터와 실제 일기 데이터 모두)
+                if (entry.mood) {
+                  cellBackgroundColor = MOODS[entry.mood]?.color || '#F3F4F6';
+                } else if (entry.emotion) {
+                  // mood가 없고 emotion만 있는 경우 변환
+                  const emotionToMood = {
+                    'Happy': 'happy',
+                    'Sad': 'sad',
+                    'Angry': 'stressed',
+                    'Anxious': 'stressed',
+                    'Stressed': 'stressed',
+                    'Neutral': 'neutral',
+                  };
+                  const mood = emotionToMood[entry.emotion] || 'neutral';
+                  cellBackgroundColor = MOODS[mood]?.color || '#F3F4F6';
+                }
             }
 
             return (
@@ -100,7 +122,13 @@ const HomeScreen = ({ entries, userInfo, onDateSelect, onEntrySelect, onProfileP
                   styles.dateCell,
                   { backgroundColor: cellBackgroundColor }
                 ]}
-                onPress={() => setSelectedDateStr(dateStr)}
+                onPress={() => {
+                  setSelectedDateStr(dateStr);
+                  // 날짜 선택 시 해당 날짜의 일기 로드
+                  if (onDateSelect) {
+                    onDateSelect(dateStr);
+                  }
+                }}
               >
                 <Text style={[
                   styles.dateNum, 
