@@ -1,5 +1,5 @@
 import React, { useState, useRef } from 'react';
-import { View, Text, TextInput, ScrollView, TouchableOpacity, StyleSheet, ActivityIndicator } from 'react-native';
+import { View, Text, TextInput, ScrollView, TouchableOpacity, StyleSheet, ActivityIndicator, Image } from 'react-native';
 import { Send, Sparkles } from 'lucide-react-native';
 
 const GEMINI_API_KEY = "YOUR_API_KEY_HERE"; 
@@ -63,7 +63,7 @@ const ChatScreen = ({ onFinish }) => {
           ]}>
             {msg.sender === 'ai' && (
               <View style={styles.aiAvatar}>
-                <Sparkles size={14} color="#F472B6" />
+                <Image source={require('../../assets/gemini.png')} style={{ width: 25, height: 25 }} />
               </View>
             )}
             <View style={[
@@ -94,8 +94,21 @@ const ChatScreen = ({ onFinish }) => {
           placeholderTextColor="#9CA3AF"
           editable={!loading}
         />
-        <TouchableOpacity onPress={handleSend} disabled={loading} style={[styles.sendBtn, input.trim() ? { backgroundColor: '#F472B6' } : { backgroundColor: '#E5E7EB' }]}>
-          <Send size={20} color={input.trim() ? '#FFF' : '#9CA3AF'} />
+        <TouchableOpacity 
+          onPress={handleSend} 
+          disabled={loading} 
+          style={[
+            styles.sendBtn, 
+            input.trim() ? { backgroundColor: '#F472B6' } : { backgroundColor: '#E5E7EB' }
+          ]}
+        >
+          <Image 
+            source={require('../../assets/send.png')} 
+            style={[
+              styles.sendIcon, 
+              { tintColor: input.trim() ? '#FFF' : '#9CA3AF' }
+            ]} 
+          />
         </TouchableOpacity>
       </View>
     </View>
@@ -105,14 +118,39 @@ const ChatScreen = ({ onFinish }) => {
 const styles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: '#ffffffff' },
   msgRow: { flexDirection: 'row', marginBottom: 16 },
-  aiAvatar: { width: 32, height: 32, borderRadius: 16, backgroundColor: '#FCE7F3', alignItems: 'center', justifyContent: 'center', marginRight: 8 },
+  aiAvatar: { width: 40, height: 40, borderRadius: 27, backgroundColor: '#FCE7F3', alignItems: 'center', justifyContent: 'center', marginRight: 8 },
   msgBubble: { padding: 12, borderRadius: 16, maxWidth: '80%' },
   userBubble: { backgroundColor: '#F472B6', borderBottomRightRadius: 0 },
   aiBubble: { backgroundColor: 'white', borderTopLeftRadius: 0, borderWidth: 1, borderColor: '#F3F4F6' },
   
-  inputArea: { padding: 16, backgroundColor: 'white', borderTopWidth: 1, borderTopColor: '#F3F4F6', flexDirection: 'row', alignItems: 'center' },
-  textInput: { flex: 1, backgroundColor: '#F3F4F6', borderRadius: 24, paddingHorizontal: 16, height: 50, marginRight: 12, color: '#374151', paddingBottom: 12 },
-  sendBtn: { width: 44, height: 44, borderRadius: 22, alignItems: 'center', justifyContent: 'center' },
+  inputArea: { 
+    padding: 8, // 기존 16에서 8로 축소
+    backgroundColor: 'white', 
+    borderTopWidth: 1, 
+    borderTopColor: '#F3F4F6', 
+    flexDirection: 'row', 
+    alignItems: 'center' 
+  },
+  
+  // [수정] 입력창 스타일: 높이 40으로 축소, 텍스트 수직 중앙 정렬 설정
+  textInput: { 
+    flex: 1, 
+    backgroundColor: '#F3F4F6', 
+    borderRadius: 20, 
+    paddingHorizontal: 16, 
+    height: 40, // [핵심] 높이를 40으로 고정 (슬림화)
+    marginRight: 10,
+    color: '#374151',
+    // 텍스트 수직 중앙 정렬 핵심 속성
+    paddingTop: 0,    
+    paddingBottom: 0,
+    textAlignVertical: 'center', // 안드로이드용 중앙 정렬
+    includeFontPadding: false,   // 안드로이드 폰트 패딩 제거
+  },
+  
+  // [수정] 전송 버튼 크기 및 이미지 스타일
+  sendBtn: { width: 40, height: 40, borderRadius: 20, alignItems: 'center', justifyContent: 'center' },
+  sendIcon: { width: 20, height: 20, resizeMode: 'contain' }
 });
 
 export default ChatScreen;

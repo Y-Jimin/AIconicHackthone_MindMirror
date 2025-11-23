@@ -1,5 +1,5 @@
 import React from 'react';
-import { View, Text, TouchableOpacity, StyleSheet, Image } from 'react-native';
+import { View, Text, TouchableOpacity, StyleSheet, Image, Platform } from 'react-native';
 
 const TabBar = ({ currentTab, setCurrentTab }) => (
   <View style={styles.tabBar}>
@@ -39,11 +39,11 @@ const TabBar = ({ currentTab, setCurrentTab }) => (
 const styles = StyleSheet.create({
   tabBar: { 
     flexDirection: 'row', 
-    height: 70, 
+    height: 60, 
     backgroundColor: 'white', 
     borderTopWidth: 1, 
     borderTopColor: '#F3F4F6', 
-    paddingBottom: 20, 
+    paddingBottom: Platform.OS === 'ios' ? 0 : 10,
     justifyContent: 'space-around', 
     alignItems: 'center' 
   },
@@ -53,7 +53,8 @@ const styles = StyleSheet.create({
   
   icon: { width: 24, height: 24, resizeMode: 'contain' },
   
-  writeBtnWrapper: { top: -20 },
+  // [수정] 버튼 위치 미세 조정
+  writeBtnWrapper: { top: -20 }, 
   writeBtn: { 
     width: 56, 
     height: 56, 

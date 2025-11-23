@@ -164,7 +164,7 @@ const HomeScreen = ({ entries, userInfo, onDateSelect, onEntrySelect, onProfileP
 
 const styles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: '#ffffffff' }, // 전체 배경 연한 핑크
-  welcomeSection: { padding: 24, backgroundColor: 'white', borderBottomLeftRadius: 24, borderBottomRightRadius: 24, paddingBottom: 32, flexDirection: 'row', justifyContent: 'space-between' },
+  welcomeSection: { padding: 24, backgroundColor: '#FFF0F5', borderBottomLeftRadius: 24, borderBottomRightRadius: 24, paddingBottom: 32, flexDirection: 'row', justifyContent: 'space-between' },
   dateText: { color: '#6B7280', fontSize: 14, marginBottom: 4 },
   greetingText: { fontSize: 24, fontWeight: 'bold', color: '#1F2937', lineHeight: 32 },
   
