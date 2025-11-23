@@ -7,7 +7,7 @@ const { body, validationResult } = require('express-validator');
 
 /**
  * GET /api/diary
- * 일기 API 엔드포인트 정보
+ * 일기 API 엔드포인트 정보 (수정완료)
  */
 router.get('/', (req, res) => {
   res.json({
