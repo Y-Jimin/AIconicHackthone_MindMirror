@@ -9,6 +9,7 @@ import ChatScreen from './src/screens/ChatScreen';
 import ReportScreen from './src/screens/ReportScreen';
 import DiaryDetailScreen from './src/screens/DiaryDetailScreen';
 import ProfileScreen from './src/screens/ProfileScreen'; 
+import DatePickerModal from './src/components/DatePickerModal'; 
 
 import { INITIAL_ENTRIES } from './src/constants/data';
 
@@ -20,11 +21,29 @@ export default function App() {
   const [tempDiaryText, setTempDiaryText] = useState('');
   const [selectedEntry, setSelectedEntry] = useState(null); 
 
+  const [writingDate, setWritingDate] = useState(new Date());
+  const [showDatePicker, setShowDatePicker] = useState(false);
+
   const [userInfo, setUserInfo] = useState({
     name: '민수',
     birthday: '', 
     photo: false 
   });
+
+  // [안전한 날짜 변환] YYYY/MM/DD 문자열을 Date 객체로 변환
+  const parseDate = (dateStr) => {
+    if (!dateStr) return new Date();
+    // 1. 기본 변환 시도
+    let d = new Date(dateStr);
+    if (!isNaN(d.getTime())) return d;
+    
+    // 2. 직접 파싱 (YYYY/MM/DD)
+    const parts = dateStr.split('/');
+    if (parts.length === 3) {
+      return new Date(parseInt(parts[0]), parseInt(parts[1]) - 1, parseInt(parts[2]));
+    }
+    return new Date(); 
+  };
 
   const goBack = () => {
     if (viewMode === 'diary-detail' || viewMode === 'profile') {
@@ -50,21 +69,26 @@ export default function App() {
     return () => backHandler.remove();
   }, [viewMode]);
 
+  const getDateStr = (dateObj) => {
+    // 안전 장치: dateObj가 Date 객체가 아니거나 Invalid Date면 오늘 날짜 반환
+    const d = (dateObj instanceof Date && !isNaN(dateObj)) ? dateObj : new Date();
+    return `${d.getFullYear()}/${String(d.getMonth() + 1).padStart(2, '0')}/${String(d.getDate()).padStart(2, '0')}`;
+  };
+
   const handleWriteDiary = () => {
-    const d = new Date();
-    const todayStr = `${d.getFullYear()}/${String(d.getMonth() + 1).padStart(2, '0')}/${String(d.getDate()).padStart(2, '0')}`;
-    
-    const existingEntry = entries.find(e => e.date === todayStr && e.type === 'diary');
+    const today = new Date();
+    const todayStr = getDateStr(today);
+    checkEntryAndNavigate(todayStr, today);
+  };
+
+  // [수정] 경고창 없이 바로 이동
+  const checkEntryAndNavigate = (dateStr, dateObj) => {
+    const existingEntry = entries.find(e => e.date === dateStr && e.type === 'diary');
+
+    setWritingDate(dateObj);
 
     if (existingEntry) {
-      Alert.alert(
-        "알림", 
-        "오늘 이미 작성한 일기가 있어요. 내용을 수정할까요?",
-        [
-          { text: "취소", style: "cancel" },
-          { text: "수정하기", onPress: () => editEntry(existingEntry) }
-        ]
-      );
+      editEntry(existingEntry); 
     } else {
       setSelectedEntry(null);
       setTempDiaryText('');
@@ -75,7 +99,26 @@ export default function App() {
   const editEntry = (entry) => {
     setSelectedEntry(entry); 
     setTempDiaryText(entry.content); 
+    // 문자열 날짜를 객체로 안전하게 변환하여 설정
+    setWritingDate(parseDate(entry.date)); 
     setViewMode('write-diary');
+  };
+
+  // [수정] 날짜 변경 시 경고창 없이 바로 데이터 로드
+  const handleDateChange = (newDateStr) => {
+    const newDateObj = parseDate(newDateStr);
+    const existingEntry = entries.find(e => e.date === newDateStr && e.type === 'diary');
+
+    setWritingDate(newDateObj);
+
+    if (existingEntry) {
+      editEntry(existingEntry);
+    } else {
+      if (selectedEntry) {
+        setSelectedEntry(null); 
+        setTempDiaryText(''); // 새 날짜니까 내용 비우기
+      }
+    }
   };
 
   const updateEntryDirectly = (id, newContent) => {
@@ -99,6 +142,8 @@ export default function App() {
       return;
     }
 
+    const targetDateStr = getDateStr(writingDate);
+
     if (selectedEntry) {
       setEntries(prev => prev.map(item => {
         if (item.id === selectedEntry.id) {
@@ -106,25 +151,40 @@ export default function App() {
             ...item,
             content: tempDiaryText,
             summary: tempDiaryText.length > 15 ? tempDiaryText.substring(0, 15) + '...' : tempDiaryText,
+            date: targetDateStr 
           };
         }
         return item;
       }));
       Alert.alert("수정 완료", "일기가 수정되었습니다.");
     } else {
-      const d = new Date();
-      const todayStr = `${d.getFullYear()}/${String(d.getMonth() + 1).padStart(2, '0')}/${String(d.getDate()).padStart(2, '0')}`;
-
-      const newEntry = {
-        id: Date.now(),
-        date: todayStr,
-        type: 'diary',
-        mood: 'neutral', 
-        summary: tempDiaryText.length > 15 ? tempDiaryText.substring(0, 15) + '...' : tempDiaryText,
-        content: tempDiaryText
-      };
-      setEntries(prev => [...prev, newEntry]);
-      Alert.alert("저장 완료", "오늘의 기록이 달력에 추가되었습니다!");
+      const doubleCheck = entries.find(e => e.date === targetDateStr && e.type === 'diary');
+      
+      if (doubleCheck) {
+        // 이미 존재하면 덮어쓰기 (Alert 없이 조용히 처리하거나 알림)
+        setEntries(prev => prev.map(item => {
+            if (item.id === doubleCheck.id) {
+              return {
+                ...item,
+                content: tempDiaryText,
+                summary: tempDiaryText.length > 15 ? tempDiaryText.substring(0, 15) + '...' : tempDiaryText,
+              };
+            }
+            return item;
+        }));
+        Alert.alert("수정 완료", "기존 일기에 덮어썼습니다.");
+      } else {
+        const newEntry = {
+          id: Date.now(),
+          date: targetDateStr, 
+          type: 'diary',
+          mood: 'neutral', 
+          summary: tempDiaryText.length > 15 ? tempDiaryText.substring(0, 15) + '...' : tempDiaryText,
+          content: tempDiaryText
+        };
+        setEntries(prev => [...prev, newEntry]);
+        Alert.alert("저장 완료", `${targetDateStr}에 일기가 저장되었습니다!`);
+      }
     }
 
     setTempDiaryText('');
@@ -145,7 +205,7 @@ export default function App() {
     if (viewMode === 'write-diary') return selectedEntry ? '일기 수정' : '오늘의 일기';
     if (viewMode === 'diary-detail') return '기록 상세';
     if (viewMode === 'profile') return '내 정보';
-    if (currentTab === 'home') return 'Mind Mirror';
+    if (currentTab === 'home') return '감정일기';
     if (currentTab === 'report') return '분석 리포트';
     return '';
   };
@@ -161,15 +221,24 @@ export default function App() {
     if (viewMode === 'write-chat') return <ChatScreen onFinish={() => setViewMode('main')} />;
     
     if (viewMode === 'write-diary') {
-      const targetDateStr = selectedEntry ? selectedEntry.date : `${new Date().getFullYear()}/${String(new Date().getMonth() + 1).padStart(2, '0')}/${String(new Date().getDate()).padStart(2, '0')}`;
-      const [y, m, d] = targetDateStr.split('/');
-      const dateDisplay = `${y}년 ${parseInt(m)}월 ${parseInt(d)}일`;
+      // [안전한 날짜 표시] writingDate 유효성 체크
+      const isValidDate = !isNaN(writingDate.getTime());
+      const safeDate = isValidDate ? writingDate : new Date();
+      
+      const y = safeDate.getFullYear();
+      const m = safeDate.getMonth() + 1;
+      const d = safeDate.getDate();
+      const dateDisplay = `${y}년 ${m}월 ${d}일`;
 
       return (
         <View style={{ flex: 1, padding: 20 }}>
-          <Text style={{color: '#6B7280', marginBottom: 10, fontSize: 16, fontWeight: '600'}}>
-            {dateDisplay}의 기록 {selectedEntry ? '(수정 중)' : ''}
-          </Text>
+          <View style={styles.dateRow}>
+            <TouchableOpacity onPress={() => setShowDatePicker(true)} style={styles.dateBtn}>
+              <Text style={styles.dateBtnText}>{dateDisplay} ▾</Text>
+            </TouchableOpacity>
+            <Text style={styles.dateLabel}>의 기록 {selectedEntry ? '(수정 중)' : ''}</Text>
+          </View>
+
           <TextInput 
             multiline 
             style={styles.diaryInput} 
@@ -182,6 +251,13 @@ export default function App() {
               {selectedEntry ? '수정 완료' : '기록 저장하기'}
             </Text>
           </TouchableOpacity>
+
+          <DatePickerModal 
+            visible={showDatePicker}
+            initialDate={safeDate}
+            onClose={() => setShowDatePicker(false)}
+            onSelect={handleDateChange}
+          />
         </View>
       );
     }
@@ -194,7 +270,6 @@ export default function App() {
       return <ProfileScreen userInfo={userInfo} onSave={handleProfileSave} onBack={() => setViewMode('main')} />;
     }
 
-    // [수정] ReportScreen에 entries 전달
     if (currentTab === 'report') {
       return <ReportScreen entries={entries} />;
     }
@@ -233,6 +308,10 @@ export default function App() {
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#F9FAFB' },
+  dateRow: { flexDirection: 'row', alignItems: 'center', marginBottom: 16 },
+  dateBtn: { backgroundColor: '#EEF2FF', paddingHorizontal: 12, paddingVertical: 6, borderRadius: 8, marginRight: 8 },
+  dateBtnText: { color: '#4F46E5', fontWeight: 'bold', fontSize: 16 },
+  dateLabel: { color: '#6B7280', fontSize: 16, fontWeight: '600' },
   diaryInput: { 
     flex: 1, fontSize: 16, lineHeight: 24, textAlignVertical: 'top', 
     backgroundColor: 'white', padding: 20, borderRadius: 16, marginBottom: 20 
