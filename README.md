@@ -1,5 +1,4 @@
 # AIconicHackthone_MindMirror
-# AIconicHackthone_MindMirror
 # 📝 두 사람은 문제아지만 최강 - 감정일기
 
 > **서비스 요약**
@@ -21,8 +20,7 @@
 <br>
 
 ## 📺 시연 영상
-- **Youtube Link:** [https://youtube.com/shorts/vl-CTuPZnME?feature=share]()
-- **Github Repository:** [(https://github.com/Y-Jimin/AIconicHackthone_MindMirror)]()
+- **Youtube Link:** [클릭](https://youtube.com/shorts/vl-CTuPZnME?feature=share)
 
 <br>
 
