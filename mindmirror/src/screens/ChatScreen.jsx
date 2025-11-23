@@ -2,7 +2,6 @@ import React, { useState, useRef } from 'react';
 import { View, Text, TextInput, ScrollView, TouchableOpacity, StyleSheet, ActivityIndicator } from 'react-native';
 import { Send, Sparkles } from 'lucide-react-native';
 
-// 👇 여기에 Google AI Studio에서 받은 API 키를 입력하세요!
 const GEMINI_API_KEY = "YOUR_API_KEY_HERE"; 
 
 const ChatScreen = ({ onFinish }) => {
@@ -15,7 +14,7 @@ const ChatScreen = ({ onFinish }) => {
 
   const callGemini = async (userMessage) => {
     if (!GEMINI_API_KEY || GEMINI_API_KEY === "YOUR_API_KEY_HERE") {
-      return "API 키 설정이 필요합니다. 코드에서 키를 입력해주세요!";
+      return "API 키가 설정되지 않았어요. 코드에서 키를 입력해주세요!";
     }
 
     try {
@@ -30,29 +29,23 @@ const ChatScreen = ({ onFinish }) => {
         }
       );
       const data = await response.json();
-      
-      if (data.error) return `Error: ${data.error.message}`;
+      if (data.error) return `에러: ${data.error.message}`;
       return data.candidates[0].content.parts[0].text;
-
     } catch (error) {
-      console.error("Gemini API Error:", error);
-      return "네트워크 오류가 발생했습니다. 다시 시도해주세요.";
+      console.error(error);
+      return "죄송해요, 연결에 문제가 생겼어요.";
     }
   };
 
   const handleSend = async () => {
     if (!input.trim()) return;
-
     const userText = input;
-    const newMsg = { id: Date.now(), sender: 'user', text: userText };
-    setMessages(prev => [...prev, newMsg]);
+    setMessages(prev => [...prev, { id: Date.now(), sender: 'user', text: userText }]);
     setInput('');
     setLoading(true);
 
     const aiResponseText = await callGemini(userText);
-    
-    const aiMsg = { id: Date.now() + 1, sender: 'ai', text: aiResponseText };
-    setMessages(prev => [...prev, aiMsg]);
+    setMessages(prev => [...prev, { id: Date.now() + 1, sender: 'ai', text: aiResponseText }]);
     setLoading(false);
   };
 
@@ -70,7 +63,7 @@ const ChatScreen = ({ onFinish }) => {
           ]}>
             {msg.sender === 'ai' && (
               <View style={styles.aiAvatar}>
-                <Sparkles size={14} color="#4F46E5" />
+                <Sparkles size={14} color="#F472B6" />
               </View>
             )}
             <View style={[
@@ -85,8 +78,8 @@ const ChatScreen = ({ onFinish }) => {
         ))}
         {loading && (
            <View style={{ flexDirection: 'row', alignItems: 'center', marginLeft: 10, marginBottom: 20 }}>
-             <ActivityIndicator size="small" color="#4F46E5" />
-             <Text style={{ marginLeft: 8, color: '#6B7280', fontSize: 12 }}>AI가 답변을 생성 중입니다...</Text>
+             <ActivityIndicator size="small" color="#F472B6" />
+             <Text style={{ marginLeft: 8, color: '#6B7280', fontSize: 12 }}>AI가 작성 중...</Text>
            </View>
         )}
         <View style={{ height: 20 }} />
@@ -101,7 +94,7 @@ const ChatScreen = ({ onFinish }) => {
           placeholderTextColor="#9CA3AF"
           editable={!loading}
         />
-        <TouchableOpacity onPress={handleSend} disabled={loading} style={[styles.sendBtn, input.trim() ? { backgroundColor: '#4F46E5' } : { backgroundColor: '#E5E7EB' }]}>
+        <TouchableOpacity onPress={handleSend} disabled={loading} style={[styles.sendBtn, input.trim() ? { backgroundColor: '#F472B6' } : { backgroundColor: '#E5E7EB' }]}>
           <Send size={20} color={input.trim() ? '#FFF' : '#9CA3AF'} />
         </TouchableOpacity>
       </View>
@@ -110,14 +103,15 @@ const ChatScreen = ({ onFinish }) => {
 };
 
 const styles = StyleSheet.create({
-  screen: { flex: 1, backgroundColor: '#F9FAFB' },
+  screen: { flex: 1, backgroundColor: '#ffffffff' },
   msgRow: { flexDirection: 'row', marginBottom: 16 },
-  aiAvatar: { width: 32, height: 32, borderRadius: 16, backgroundColor: '#EEF2FF', alignItems: 'center', justifyContent: 'center', marginRight: 8 },
+  aiAvatar: { width: 32, height: 32, borderRadius: 16, backgroundColor: '#FCE7F3', alignItems: 'center', justifyContent: 'center', marginRight: 8 },
   msgBubble: { padding: 12, borderRadius: 16, maxWidth: '80%' },
-  userBubble: { backgroundColor: '#4F46E5', borderBottomRightRadius: 0 },
+  userBubble: { backgroundColor: '#F472B6', borderBottomRightRadius: 0 },
   aiBubble: { backgroundColor: 'white', borderTopLeftRadius: 0, borderWidth: 1, borderColor: '#F3F4F6' },
+  
   inputArea: { padding: 16, backgroundColor: 'white', borderTopWidth: 1, borderTopColor: '#F3F4F6', flexDirection: 'row', alignItems: 'center' },
-  textInput: { flex: 1, backgroundColor: '#F3F4F6', borderRadius: 24, paddingHorizontal: 16, paddingVertical: 10, marginRight: 12 },
+  textInput: { flex: 1, backgroundColor: '#F3F4F6', borderRadius: 24, paddingHorizontal: 16, height: 50, marginRight: 12, color: '#374151', paddingBottom: 12 },
   sendBtn: { width: 44, height: 44, borderRadius: 22, alignItems: 'center', justifyContent: 'center' },
 });
 

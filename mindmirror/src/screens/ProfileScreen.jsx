@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { View, Text, TextInput, TouchableOpacity, StyleSheet, Image, Alert, Modal } from 'react-native';
-import { Camera, ChevronLeft, ChevronRight, X } from 'lucide-react-native'; // User 아이콘 제거
+import { Camera, ChevronLeft, ChevronRight, X } from 'lucide-react-native';
 
 const ProfileScreen = ({ userInfo, onSave, onBack }) => {
   const [name, setName] = useState(userInfo.name);
@@ -11,14 +11,10 @@ const ProfileScreen = ({ userInfo, onSave, onBack }) => {
   const [pickerDate, setPickerDate] = useState(new Date()); 
 
   const handleBackPress = () => {
-    Alert.alert(
-      "변경사항 저장",
-      "변경사항을 저장하시겠습니까?",
-      [
-        { text: "취소", onPress: () => onBack(), style: "cancel" },
-        { text: "저장", onPress: () => onSave({ name, birthday, photo: hasProfileImage }) }
-      ]
-    );
+    Alert.alert("변경사항 저장", "변경사항을 저장하시겠습니까?", [
+      { text: "취소", onPress: () => onBack(), style: "cancel" },
+      { text: "저장", onPress: () => onSave({ name, birthday, photo: hasProfileImage }) }
+    ]);
   };
 
   const handleImageChange = () => {
@@ -29,7 +25,6 @@ const ProfileScreen = ({ userInfo, onSave, onBack }) => {
     ]);
   };
 
-  // --- 달력 로직 ---
   const year = pickerDate.getFullYear();
   const month = pickerDate.getMonth(); 
   const firstDayOfMonth = new Date(year, month, 1).getDay();
@@ -66,42 +61,27 @@ const ProfileScreen = ({ userInfo, onSave, onBack }) => {
       </View>
 
       <View style={styles.content}>
-        {/* 프로필 사진 영역 */}
         <TouchableOpacity onPress={handleImageChange} style={styles.profileImageWrapper}>
-          {/* [수정] 항상 profile.png 이미지를 표시합니다. (실제 앱에선 hasProfileImage에 따라 다른 uri 사용 가능) */}
-          <Image 
-            source={require('../../assets/profile.png')} 
-            style={styles.profileImage} 
-          />
+          <Image source={require('../../assets/profile.png')} style={styles.profileImage} />
           <View style={styles.cameraBadge}>
             <Camera size={16} color="white" />
           </View>
         </TouchableOpacity>
 
-        {/* 이름 입력 */}
         <View style={styles.inputGroup}>
           <Text style={styles.label}>이름</Text>
-          <TextInput
-            style={styles.input}
-            value={name}
-            onChangeText={setName}
-            placeholder="이름을 입력하세요"
-          />
+          <TextInput style={styles.input} value={name} onChangeText={setName} placeholder="이름을 입력하세요" />
         </View>
 
-        {/* 생년월일 선택 */}
         <View style={styles.inputGroup}>
           <Text style={styles.label}>생년월일</Text>
           <TouchableOpacity onPress={() => setShowDatePicker(true)} style={styles.dateInputBtn}>
-            <Text style={[styles.dateInputText, !birthday && { color: '#9CA3AF' }]}>
-              {birthday || "날짜를 선택해주세요"}
-            </Text>
+            <Text style={[styles.dateInputText, !birthday && { color: '#9CA3AF' }]}>{birthday || "날짜를 선택해주세요"}</Text>
           </TouchableOpacity>
           <Text style={styles.helperText}>캘린더에 생일이 표시됩니다 🎂</Text>
         </View>
       </View>
 
-      {/* 생년월일 선택 모달 */}
       <Modal visible={showDatePicker} transparent animationType="fade">
         <View style={styles.modalOverlay}>
           <View style={styles.datePickerContainer}>
@@ -111,7 +91,6 @@ const ProfileScreen = ({ userInfo, onSave, onBack }) => {
                 <Text style={styles.closeText}>닫기</Text>
               </TouchableOpacity>
             </View>
-
             <View style={styles.navRow}>
               <View style={styles.navControl}>
                 <TouchableOpacity onPress={() => changeYear(-1)} style={styles.navBtn}>
@@ -122,7 +101,6 @@ const ProfileScreen = ({ userInfo, onSave, onBack }) => {
                   <Image source={require('../../assets/right.png')} style={styles.navIcon} resizeMode="contain" />
                 </TouchableOpacity>
               </View>
-              
               <View style={styles.navControl}>
                 <TouchableOpacity onPress={() => changeMonth(-1)} style={styles.navBtn}>
                   <Image source={require('../../assets/left.png')} style={styles.navIcon} resizeMode="contain" />
@@ -133,20 +111,13 @@ const ProfileScreen = ({ userInfo, onSave, onBack }) => {
                 </TouchableOpacity>
               </View>
             </View>
-
             <View style={styles.calendarGrid}>
               {['일', '월', '화', '수', '목', '금', '토'].map((d, i) => (
                 <Text key={i} style={styles.dayLabel}>{d}</Text>
               ))}
-              {Array(firstDayOfMonth).fill(null).map((_, i) => (
-                <View key={`empty-${i}`} style={styles.dateCell} />
-              ))}
+              {Array(firstDayOfMonth).fill(null).map((_, i) => (<View key={`empty-${i}`} style={styles.dateCell} />))}
               {Array.from({ length: daysInMonth }, (_, i) => i + 1).map((day) => (
-                <TouchableOpacity 
-                  key={day} 
-                  style={styles.dateCell}
-                  onPress={() => handleDateSelect(day)}
-                >
+                <TouchableOpacity key={day} style={styles.dateCell} onPress={() => handleDateSelect(day)}>
                   <Text style={styles.dateNum}>{day}</Text>
                 </TouchableOpacity>
               ))}
@@ -159,60 +130,33 @@ const ProfileScreen = ({ userInfo, onSave, onBack }) => {
 };
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#F9FAFB' },
-  header: { 
-    height: 56, 
-    flexDirection: 'row', 
-    alignItems: 'center', 
-    justifyContent: 'space-between', 
-    paddingHorizontal: 16, 
-    backgroundColor: 'white', 
-    borderBottomWidth: 1, 
-    borderBottomColor: '#F3F4F6' 
-  },
+  container: { flex: 1, backgroundColor: '#ffffffff' },
+  header: { height: 56, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 16, backgroundColor: 'white', borderBottomWidth: 1, borderBottomColor: '#FCE7F3' },
   headerTitle: { fontSize: 18, fontWeight: 'bold', color: '#1F2937' },
   headerBtn: { padding: 8 },
   icon: { width: 24, height: 24 },
   saveTextBtn: { padding: 8 },
-  saveText: { fontSize: 16, fontWeight: '600', color: '#4F46E5' },
-  
+  saveText: { fontSize: 16, fontWeight: '600', color: '#F472B6' },
   content: { flex: 1, padding: 24, alignItems: 'center' },
-  
   profileImageWrapper: { marginBottom: 32, position: 'relative' },
-  // [수정] 스타일 일부 변경
   profileImage: { width: 120, height: 120, borderRadius: 60, borderWidth: 1, borderColor: '#E5E7EB' },
-  cameraBadge: { 
-    position: 'absolute', bottom: 0, right: 0, 
-    backgroundColor: '#4F46E5', width: 36, height: 36, borderRadius: 18, 
-    alignItems: 'center', justifyContent: 'center', borderWidth: 3, borderColor: '#F9FAFB'
-  },
-
+  cameraBadge: { position: 'absolute', bottom: 0, right: 0, backgroundColor: '#F472B6', width: 36, height: 36, borderRadius: 18, alignItems: 'center', justifyContent: 'center', borderWidth: 3, borderColor: '#FFF0F5' },
   inputGroup: { width: '100%', marginBottom: 24 },
   label: { fontSize: 14, fontWeight: '600', color: '#374151', marginBottom: 8 },
-  input: { 
-    backgroundColor: 'white', borderRadius: 12, paddingHorizontal: 16, paddingVertical: 14, 
-    fontSize: 16, color: '#111827', borderWidth: 1, borderColor: '#E5E7EB'
-  },
-  
-  dateInputBtn: {
-    backgroundColor: 'white', borderRadius: 12, paddingHorizontal: 16, paddingVertical: 14, 
-    borderWidth: 1, borderColor: '#E5E7EB'
-  },
+  input: { backgroundColor: 'white', borderRadius: 12, paddingHorizontal: 16, paddingVertical: 14, fontSize: 16, color: '#111827', borderWidth: 1, borderColor: '#E5E7EB' },
+  dateInputBtn: { backgroundColor: 'white', borderRadius: 12, paddingHorizontal: 16, paddingVertical: 14, borderWidth: 1, borderColor: '#E5E7EB' },
   dateInputText: { fontSize: 16, color: '#111827' },
   helperText: { fontSize: 12, color: '#6B7280', marginTop: 6, marginLeft: 4 },
-
   modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'center', alignItems: 'center' },
   datePickerContainer: { width: '90%', backgroundColor: 'white', borderRadius: 20, padding: 20 },
   pickerHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 },
   pickerTitle: { fontSize: 18, fontWeight: 'bold', color: '#1F2937' },
-  closeText: { fontSize: 16, color: '#6B7280', fontWeight: '600' }, 
-  
+  closeText: { fontSize: 16, color: '#6B7280', fontWeight: '600' },
   navRow: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 10 },
   navControl: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#F3F4F6', borderRadius: 8, padding: 4 },
-  navBtn: { padding: 8 }, 
+  navBtn: { padding: 8 },
   navIcon: { width: 16, height: 16 },
   navText: { marginHorizontal: 8, fontWeight: '600', color: '#374151' },
-
   calendarGrid: { flexDirection: 'row', flexWrap: 'wrap' },
   dayLabel: { width: '14.28%', textAlign: 'center', color: '#9CA3AF', fontSize: 12, marginBottom: 8 },
   dateCell: { width: '14.28%', height: 40, alignItems: 'center', justifyContent: 'center', marginBottom: 4 },

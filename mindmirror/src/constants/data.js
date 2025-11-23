@@ -8,7 +8,6 @@ export const MOODS = {
   stressed: { icon: <Activity size={24} color="#DC2626" />, color: '#FEE2E2', label: '스트레스' },
 };
 
-// [수정] 날짜 형식을 YYYY/MM/DD 로 변경
 const today = new Date();
 const todayStr = `${today.getFullYear()}/${String(today.getMonth() + 1).padStart(2, '0')}/${String(today.getDate()).padStart(2, '0')}`;
 
@@ -42,8 +41,8 @@ export const WEEKLY_STATS = [
 ];
 
 export const KEYWORDS = [
-  { word: '해커톤', count: 15, bg: '#E0E7FF', text: '#4338CA' },
+  { word: '해커톤', count: 15, bg: '#FCE7F3', text: '#BE185D' }, // 핑크
   { word: '팀플', count: 12, bg: '#FEE2E2', text: '#B91C1C' },
   { word: '커피', count: 8, bg: '#FEF3C7', text: '#B45309' },
-  { word: '수면', count: 5, bg: '#DBEAFE', text: '#1D4ED8' },
+  { word: '수면', count: 5, bg: '#F3E8FF', text: '#7E22CE' }, // 보라
 ];

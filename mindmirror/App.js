@@ -30,14 +30,10 @@ export default function App() {
     photo: false 
   });
 
-  // [안전한 날짜 변환] YYYY/MM/DD 문자열을 Date 객체로 변환
   const parseDate = (dateStr) => {
     if (!dateStr) return new Date();
-    // 1. 기본 변환 시도
     let d = new Date(dateStr);
     if (!isNaN(d.getTime())) return d;
-    
-    // 2. 직접 파싱 (YYYY/MM/DD)
     const parts = dateStr.split('/');
     if (parts.length === 3) {
       return new Date(parseInt(parts[0]), parseInt(parts[1]) - 1, parseInt(parts[2]));
@@ -70,7 +66,6 @@ export default function App() {
   }, [viewMode]);
 
   const getDateStr = (dateObj) => {
-    // 안전 장치: dateObj가 Date 객체가 아니거나 Invalid Date면 오늘 날짜 반환
     const d = (dateObj instanceof Date && !isNaN(dateObj)) ? dateObj : new Date();
     return `${d.getFullYear()}/${String(d.getMonth() + 1).padStart(2, '0')}/${String(d.getDate()).padStart(2, '0')}`;
   };
@@ -81,12 +76,9 @@ export default function App() {
     checkEntryAndNavigate(todayStr, today);
   };
 
-  // [수정] 경고창 없이 바로 이동
   const checkEntryAndNavigate = (dateStr, dateObj) => {
     const existingEntry = entries.find(e => e.date === dateStr && e.type === 'diary');
-
     setWritingDate(dateObj);
-
     if (existingEntry) {
       editEntry(existingEntry); 
     } else {
@@ -99,24 +91,20 @@ export default function App() {
   const editEntry = (entry) => {
     setSelectedEntry(entry); 
     setTempDiaryText(entry.content); 
-    // 문자열 날짜를 객체로 안전하게 변환하여 설정
     setWritingDate(parseDate(entry.date)); 
     setViewMode('write-diary');
   };
 
-  // [수정] 날짜 변경 시 경고창 없이 바로 데이터 로드
   const handleDateChange = (newDateStr) => {
     const newDateObj = parseDate(newDateStr);
     const existingEntry = entries.find(e => e.date === newDateStr && e.type === 'diary');
-
     setWritingDate(newDateObj);
-
     if (existingEntry) {
       editEntry(existingEntry);
     } else {
       if (selectedEntry) {
         setSelectedEntry(null); 
-        setTempDiaryText(''); // 새 날짜니까 내용 비우기
+        setTempDiaryText(''); 
       }
     }
   };
@@ -141,9 +129,7 @@ export default function App() {
       Alert.alert("알림", "내용을 입력해주세요.");
       return;
     }
-
     const targetDateStr = getDateStr(writingDate);
-
     if (selectedEntry) {
       setEntries(prev => prev.map(item => {
         if (item.id === selectedEntry.id) {
@@ -159,9 +145,7 @@ export default function App() {
       Alert.alert("수정 완료", "일기가 수정되었습니다.");
     } else {
       const doubleCheck = entries.find(e => e.date === targetDateStr && e.type === 'diary');
-      
       if (doubleCheck) {
-        // 이미 존재하면 덮어쓰기 (Alert 없이 조용히 처리하거나 알림)
         setEntries(prev => prev.map(item => {
             if (item.id === doubleCheck.id) {
               return {
@@ -186,7 +170,6 @@ export default function App() {
         Alert.alert("저장 완료", `${targetDateStr}에 일기가 저장되었습니다!`);
       }
     }
-
     setTempDiaryText('');
     setSelectedEntry(null);
     setViewMode('main');
@@ -217,14 +200,10 @@ export default function App() {
         else setViewMode('write-chat');
       }} />;
     }
-    
     if (viewMode === 'write-chat') return <ChatScreen onFinish={() => setViewMode('main')} />;
-    
     if (viewMode === 'write-diary') {
-      // [안전한 날짜 표시] writingDate 유효성 체크
       const isValidDate = !isNaN(writingDate.getTime());
       const safeDate = isValidDate ? writingDate : new Date();
-      
       const y = safeDate.getFullYear();
       const m = safeDate.getMonth() + 1;
       const d = safeDate.getDate();
@@ -238,7 +217,6 @@ export default function App() {
             </TouchableOpacity>
             <Text style={styles.dateLabel}>의 기록 {selectedEntry ? '(수정 중)' : ''}</Text>
           </View>
-
           <TextInput 
             multiline 
             style={styles.diaryInput} 
@@ -251,7 +229,6 @@ export default function App() {
               {selectedEntry ? '수정 완료' : '기록 저장하기'}
             </Text>
           </TouchableOpacity>
-
           <DatePickerModal 
             visible={showDatePicker}
             initialDate={safeDate}
@@ -261,18 +238,9 @@ export default function App() {
         </View>
       );
     }
-
-    if (viewMode === 'diary-detail') {
-      return <DiaryDetailScreen entry={selectedEntry} onSave={updateEntryDirectly} />;
-    }
-    
-    if (viewMode === 'profile') {
-      return <ProfileScreen userInfo={userInfo} onSave={handleProfileSave} onBack={() => setViewMode('main')} />;
-    }
-
-    if (currentTab === 'report') {
-      return <ReportScreen entries={entries} />;
-    }
+    if (viewMode === 'diary-detail') return <DiaryDetailScreen entry={selectedEntry} onSave={updateEntryDirectly} />;
+    if (viewMode === 'profile') return <ProfileScreen userInfo={userInfo} onSave={handleProfileSave} onBack={() => setViewMode('main')} />;
+    if (currentTab === 'report') return <ReportScreen entries={entries} />;
     
     return <HomeScreen 
       entries={entries} 
@@ -307,17 +275,11 @@ export default function App() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#F9FAFB' },
+  container: { flex: 1, backgroundColor: '#ffffffff' }, // 메인 배경색 핑크
   dateRow: { flexDirection: 'row', alignItems: 'center', marginBottom: 16 },
-  dateBtn: { backgroundColor: '#EEF2FF', paddingHorizontal: 12, paddingVertical: 6, borderRadius: 8, marginRight: 8 },
-  dateBtnText: { color: '#4F46E5', fontWeight: 'bold', fontSize: 16 },
+  dateBtn: { backgroundColor: '#FCE7F3', paddingHorizontal: 12, paddingVertical: 6, borderRadius: 8, marginRight: 8 },
+  dateBtnText: { color: '#F472B6', fontWeight: 'bold', fontSize: 16 },
   dateLabel: { color: '#6B7280', fontSize: 16, fontWeight: '600' },
-  diaryInput: { 
-    flex: 1, fontSize: 16, lineHeight: 24, textAlignVertical: 'top', 
-    backgroundColor: 'white', padding: 20, borderRadius: 16, marginBottom: 20 
-  },
-  saveBtn: { 
-    backgroundColor: '#4F46E5', padding: 16, borderRadius: 12, 
-    alignItems: 'center', shadowColor: '#4F46E5', shadowOpacity: 0.3, shadowOffset: { width: 0, height: 4 }
-  }
+  diaryInput: { flex: 1, fontSize: 16, lineHeight: 24, textAlignVertical: 'top', backgroundColor: 'white', padding: 20, borderRadius: 16, marginBottom: 20 },
+  saveBtn: { backgroundColor: '#F472B6', padding: 16, borderRadius: 12, alignItems: 'center', shadowColor: '#F472B6', shadowOpacity: 0.3, shadowOffset: { width: 0, height: 4 } }
 });
