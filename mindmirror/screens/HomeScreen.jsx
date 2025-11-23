@@ -1,104 +1,527 @@
-import React from 'react';
-import { User, Sparkles } from 'lucide-react';
+import React, { useMemo } from 'react';
+import {
+  View,
+  Text,
+  TouchableOpacity,
+  ScrollView,
+  StyleSheet,
+  RefreshControl,
+} from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
 import { MOODS } from '../constants/data';
 
-const HomeScreen = ({ entries, onDateSelect }) => {
-  const days = Array.from({ length: 31 }, (_, i) => i + 1);
-  const today = 24;
+const HomeScreen = ({ 
+  entries, 
+  onDateSelect, 
+  onRefresh, 
+  isLoading = false, 
+  selectedYear, 
+  selectedMonth, 
+  onMonthChange 
+}) => {
+  
+  // 1. 현재 표시할 년/월/일 계산
+  const displayDate = useMemo(() => {
+    const now = new Date();
+    const year = selectedYear !== null && selectedYear !== undefined ? selectedYear : now.getFullYear();
+    const month = selectedMonth !== null && selectedMonth !== undefined ? selectedMonth - 1 : now.getMonth(); // 0-11
+    const day = now.getDate();
+    
+    return { year, month, day };
+  }, [selectedYear, selectedMonth]);
+
+  // 2. 달력 렌더링을 위한 기본 정보 계산
+  const { currentDate, currentMonth, currentYear, monthDays, firstDayOfWeek, today } = useMemo(() => {
+    const { year, month, day } = displayDate;
+    
+    const firstDay = new Date(year, month, 1);
+    const lastDay = new Date(year, month + 1, 0);
+    const daysInMonth = lastDay.getDate();
+    const firstDayWeekday = firstDay.getDay(); // 0(일요일) ~ 6(토요일)
+    
+    const weekdays = ['일', '월', '화', '수', '목', '금', '토'];
+    const now = new Date();
+    const weekdayName = weekdays[now.getDay()];
+    
+    const isCurrentMonth = year === now.getFullYear() && month === now.getMonth();
+    
+    return {
+      currentDate: `${year}년 ${month + 1}월 ${isCurrentMonth ? day : 1}일 ${weekdayName}요일`,
+      currentMonth: month + 1,
+      currentYear: year,
+      monthDays: daysInMonth,
+      firstDayOfWeek: firstDayWeekday,
+      today: isCurrentMonth ? day : null,
+    };
+  }, [displayDate]);
+
+  const days = useMemo(() => {
+    return Array.from({ length: monthDays }, (_, i) => i + 1);
+  }, [monthDays]);
+
+  // ✅ [수정 핵심] entries를 날짜(Key) 기반의 객체(Map)로 변환
+  // 이 부분이 "날짜 밀림"과 "불 안 들어오는 문제"를 해결합니다.
+  const entryMap = useMemo(() => {
+    const map = {};
+    
+    if (!entries || entries.length === 0) return map;
+
+    entries.forEach((entry) => {
+      if (!entry.date) return;
+
+      let dateKey = '';
+
+      // 날짜 포맷 정규화 (YYYY-MM-DD)
+      try {
+        const d = new Date(entry.date);
+        
+        // 날짜가 유효하지 않으면 패스
+        if (isNaN(d.getTime())) return;
+
+        const year = d.getFullYear();
+        const month = String(d.getMonth() + 1).padStart(2, '0');
+        const day = String(d.getDate()).padStart(2, '0');
+        
+        dateKey = `${year}-${month}-${day}`;
+      } catch (e) {
+        console.error("Date parsing error:", e);
+        return;
+      }
+
+      // hasRecord가 명시적으로 false인 경우만 제외
+      if (entry.hasRecord !== false) {
+        map[dateKey] = entry;
+      }
+    });
+
+    return map;
+  }, [entries]);
 
   return (
-    <div className="pb-20 bg-gray-50 min-h-screen">
-      <div className="p-6 bg-white rounded-b-3xl shadow-sm">
-        <div className="flex justify-between items-end mb-6">
-          <div>
-            <p className="text-gray-500 text-sm font-medium mb-1">10월 24일 화요일</p>
-            <h2 className="text-2xl font-bold text-gray-800">
-              안녕하세요, <br/>
-              <span className="text-indigo-600">민수</span>님! 👋
-            </h2>
-          </div>
-          <div className="w-10 h-10 rounded-full bg-indigo-100 flex items-center justify-center">
-            <User size={20} className="text-indigo-600" />
-          </div>
-        </div>
+    <ScrollView
+      style={styles.container}
+      contentContainerStyle={styles.content}
+      refreshControl={
+        onRefresh ? (
+          <RefreshControl refreshing={isLoading} onRefresh={onRefresh} />
+        ) : undefined
+      }
+    >
+      {/* 헤더 섹션 */}
+      <View style={styles.headerSection}>
+        <View style={styles.headerTop}>
+          <View>
+            <Text style={styles.dateText}>{currentDate}</Text>
+            <Text style={styles.greeting}>
+              안녕하세요,{'\n'}
+              <Text style={styles.name}>민수</Text>님! 👋
+            </Text>
+          </View>
+          <View style={styles.avatar}>
+            <Ionicons name="person" size={20} color="#4F46E5" />
+          </View>
+        </View>
 
-        {/* Monthly Mood Summary Card */}
-        <div className="bg-gradient-to-r from-indigo-500 to-purple-600 rounded-2xl p-5 text-white shadow-lg mb-6 relative overflow-hidden">
-          <Sparkles className="absolute top-2 right-2 text-white/20 w-24 h-24 -rotate-12" />
-          <p className="text-indigo-100 text-xs font-medium mb-2">이번 달 기분 흐름</p>
-          <h3 className="text-lg font-bold mb-1">대체로 행복했어요 🥰</h3>
-          <p className="text-sm opacity-90">긍정적인 감정이 지난달보다 15% 늘었어요.</p>
-        </div>
+        {/* 기분 분석 카드 */}
+        <View style={styles.moodCard}>
+          <Ionicons
+            name="sparkles"
+            size={80}
+            color="rgba(255,255,255,0.2)"
+            style={styles.moodCardIcon}
+          />
+          <Text style={styles.moodCardLabel}>이번 달 기분 흐름</Text>
+          <Text style={styles.moodCardTitle}>대체로 행복했어요 🥰</Text>
+          <Text style={styles.moodCardSubtitle}>
+            긍정적인 감정이 지난달보다 15% 늘었어요.
+          </Text>
+        </View>
 
-        {/* Calendar Grid */}
-        <div className="mb-4">
-          <div className="flex justify-between items-center mb-4">
-            <h3 className="font-bold text-gray-800 text-lg">10월의 기록</h3>
-            <button className="text-xs text-gray-400 hover:text-indigo-600">전체보기</button>
-          </div>
-          <div className="grid grid-cols-7 gap-2 text-center">
-            {['일', '월', '화', '수', '목', '금', '토'].map(d => (
-              <div key={d} className="text-xs text-gray-400 font-medium mb-2">{d}</div>
+        {/* 캘린더 섹션 */}
+        <View style={styles.calendarSection}>
+          <View style={styles.calendarHeader}>
+            <View style={styles.calendarTitleRow}>
+              <TouchableOpacity
+                onPress={() => {
+                  if (onMonthChange) {
+                    const newMonth = currentMonth === 1 ? 12 : currentMonth - 1;
+                    const newYear = currentMonth === 1 ? currentYear - 1 : currentYear;
+                    onMonthChange(newYear, newMonth);
+                  }
+                }}
+                style={styles.monthNavButton}
+              >
+                <Ionicons name="chevron-back" size={20} color="#4F46E5" />
+              </TouchableOpacity>
+              <Text style={styles.calendarTitle}>{currentYear}년 {currentMonth}월</Text>
+              <TouchableOpacity
+                onPress={() => {
+                  if (onMonthChange) {
+                    const newMonth = currentMonth === 12 ? 1 : currentMonth + 1;
+                    const newYear = currentMonth === 12 ? currentYear + 1 : currentYear;
+                    onMonthChange(newYear, newMonth);
+                  }
+                }}
+                style={styles.monthNavButton}
+              >
+                <Ionicons name="chevron-forward" size={20} color="#4F46E5" />
+              </TouchableOpacity>
+            </View>
+          </View>
+
+          <View style={styles.calendarGrid}>
+            {['일', '월', '화', '수', '목', '금', '토'].map((d) => (
+              <View key={d} style={styles.dayLabel}>
+                <Text style={styles.dayLabelText}>{d}</Text>
+              </View>
             ))}
-            {Array(2).fill(null).map((_, i) => <div key={`empty-${i}`} />)}
-            {days.map(day => {
-              const entry = entries.find(e => parseInt(e.date.split('-')[2]) === day);
-              const isToday = day === today;
+            
+            {/* 빈 칸 채우기 */}
+            {Array(firstDayOfWeek)
+              .fill(null)
+              .map((_, i) => (
+                <View key={`empty-${i}`} style={styles.emptyDay} />
+              ))}
+
+            {/* 날짜 렌더링 */}
+            {days.map((day) => {
+              // 현재 그리는 날짜의 키 생성 (YYYY-MM-DD)
+              const dateKey = `${currentYear}-${String(currentMonth).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
               
+              // Map에서 데이터 O(1) 조회
+              const entry = entryMap[dateKey];
+              const isToday = today !== null && day === today;
+              
+              // 기분 데이터가 있는지 확인
+              const hasMood = entry && entry.mood;
+
               return (
-                <button 
-                  key={day} 
-                  className={`aspect-square rounded-xl flex flex-col items-center justify-center relative text-sm
-                    ${isToday ? 'bg-indigo-600 text-white shadow-md' : 'bg-transparent text-gray-700 hover:bg-gray-100'}
-                    ${entry ? '' : 'opacity-50'}
-                  `}
-                  onClick={() => entry && onDateSelect(entry)}
+                <TouchableOpacity
+                  key={day}
+                  style={[
+                    styles.dayButton,
+                    isToday && styles.dayButtonToday,
+                  ]}
+                  onPress={() => {
+                    if (entry) {
+                      onDateSelect(entry);
+                    } else {
+                      // 일기가 없어도 해당 날짜 상세 페이지로 이동
+                      onDateSelect({ date: dateKey });
+                    }
+                  }}
                 >
-                  <span className={`z-10 ${isToday ? 'font-bold' : ''}`}>{day}</span>
-                  {entry && (
-                    <div className="absolute bottom-1 w-full flex justify-center">
-                      <div className={`w-1.5 h-1.5 rounded-full ${
-                        entry.mood === 'happy' ? 'bg-yellow-400' : 
-                        entry.mood === 'stressed' ? 'bg-red-400' :
-                        entry.mood === 'sad' ? 'bg-blue-400' : 'bg-gray-400'
-                      }`} />
-                    </div>
+                  <Text
+                    style={[
+                      styles.dayText,
+                      isToday && styles.dayTextToday,
+                      !entry && styles.dayTextEmpty, // 일기 없으면 흐리게
+                    ]}
+                  >
+                    {day}
+                  </Text>
+                  
+                  {/* 기분 색상 점 표시 */}
+                  {hasMood && (
+                    <View
+                      style={[
+                        styles.moodDot,
+                        {
+                          backgroundColor:
+                            entry.mood === 'happy' ? '#FBBF24' :       // 노랑
+                            entry.mood === 'stressed' ? '#EF4444' :    // 빨강
+                            entry.mood === 'sad' ? '#3B82F6' :         // 파랑
+                            entry.mood === 'anxious' ? '#F59E0B' :     // 주황
+                            '#9CA3AF',                                 // 기본 회색
+                        },
+                      ]}
+                    />
                   )}
-                </button>
+                </TouchableOpacity>
               );
             })}
-          </div>
-        </div>
-      </div>
+          </View>
+        </View>
+      </View>
 
-      {/* Recent Activity List */}
-      <div className="p-6">
-        <h3 className="font-bold text-gray-800 text-lg mb-4">최근 기록</h3>
-        <div className="space-y-3">
-          {entries.slice().reverse().slice(0, 3).map(entry => (
-            <div key={entry.id} className="bg-white p-4 rounded-2xl shadow-sm border border-gray-100 flex items-center gap-4">
-              <div className={`w-12 h-12 rounded-2xl flex items-center justify-center ${MOODS[entry.mood].color} bg-opacity-20`}>
-                {MOODS[entry.mood].icon}
-              </div>
-              <div className="flex-1">
-                <div className="flex justify-between items-start mb-1">
-                  <span className="font-bold text-gray-800 text-sm">{entry.summary}</span>
-                  <span className="text-xs text-gray-400">{entry.date.slice(5)}</span>
-                </div>
-                <div className="flex items-center gap-2 text-xs text-gray-500">
-                  <span className={`px-2 py-0.5 rounded-md bg-gray-100 ${entry.type === 'chat' ? 'text-indigo-500' : 'text-green-600'}`}>
-                    {entry.type === 'chat' ? 'AI 대화' : '일기'}
-                  </span>
-                  <span>|</span>
-                  <span>{MOODS[entry.mood].label}</span>
-                </div>
-              </div>
-            </div>
-          ))}
-        </div>
-      </div>
-    </div>
+      {/* 최근 기록 섹션 */}
+      <View style={styles.recentSection}>
+        <Text style={styles.recentTitle}>최근 기록</Text>
+        {entries
+          .slice()
+          .reverse()
+          .slice(0, 3)
+          .map((entry) => {
+            const mood = entry.mood && MOODS[entry.mood] ? entry.mood : 'neutral';
+            const moodData = MOODS[mood] || MOODS['neutral']; // 안전장치 추가
+            
+            return (
+              <View key={entry.id || Math.random()} style={styles.entryCard}>
+                <View
+                  style={[
+                    styles.moodIconContainer,
+                    { backgroundColor: moodData.color },
+                  ]}
+                >
+                  {moodData.icon}
+                </View>
+                <View style={styles.entryContent}>
+                  <View style={styles.entryHeader}>
+                    <Text style={styles.entrySummary} numberOfLines={1}>
+                        {entry.summary || "내용 없음"}
+                    </Text>
+                    <Text style={styles.entryDate}>
+                        {entry.date ? new Date(entry.date).toLocaleDateString() : ''}
+                    </Text>
+                  </View>
+                  <View style={styles.entryMeta}>
+                    <View
+                      style={[
+                        styles.entryType,
+                        {
+                          backgroundColor:
+                            entry.type === 'chat' ? '#E0E7FF' : '#D1FAE5',
+                        },
+                      ]}
+                    >
+                      <Text
+                        style={[
+                          styles.entryTypeText,
+                          {
+                            color: entry.type === 'chat' ? '#4338CA' : '#059669',
+                          },
+                        ]}
+                      >
+                        {entry.type === 'chat' ? 'AI 대화' : '일기'}
+                      </Text>
+                    </View>
+                    <Text style={styles.entryMetaDivider}>|</Text>
+                    <Text style={styles.entryMood}>
+                      {moodData.label}
+                    </Text>
+                  </View>
+                </View>
+              </View>
+            );
+          })}
+      </View>
+    </ScrollView>
   );
 };
+
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+    backgroundColor: '#F9FAFB',
+  },
+  content: {
+    paddingBottom: 100,
+  },
+  headerSection: {
+    backgroundColor: '#FFFFFF',
+    padding: 24,
+    borderBottomLeftRadius: 24,
+    borderBottomRightRadius: 24,
+    marginBottom: 6,
+  },
+  headerTop: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'flex-end',
+    marginBottom: 24,
+  },
+  dateText: {
+    fontSize: 14,
+    fontWeight: '500',
+    color: '#6B7280',
+    marginBottom: 4,
+  },
+  greeting: {
+    fontSize: 24,
+    fontWeight: 'bold',
+    color: '#1F2937',
+  },
+  name: {
+    color: '#4F46E5',
+  },
+  avatar: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: '#E0E7FF',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  moodCard: {
+    backgroundColor: '#4F46E5',
+    borderRadius: 16,
+    padding: 20,
+    marginBottom: 24,
+    overflow: 'hidden',
+    position: 'relative',
+  },
+  moodCardIcon: {
+    position: 'absolute',
+    top: 8,
+    right: 8,
+    transform: [{ rotate: '-12deg' }],
+  },
+  moodCardLabel: {
+    fontSize: 12,
+    fontWeight: '500',
+    color: '#C7D2FE',
+    marginBottom: 8,
+  },
+  moodCardTitle: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    color: '#FFFFFF',
+    marginBottom: 4,
+  },
+  moodCardSubtitle: {
+    fontSize: 14,
+    color: 'rgba(255,255,255,0.9)',
+  },
+  calendarSection: {
+    marginTop: 16,
+  },
+  calendarHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 16,
+  },
+  calendarTitleRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+  },
+  monthNavButton: {
+    padding: 4,
+  },
+  calendarTitle: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    color: '#1F2937',
+    minWidth: 100,
+    textAlign: 'center',
+  },
+  calendarGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
+  },
+  dayLabel: {
+    width: '13%',
+    alignItems: 'center',
+    marginBottom: 8,
+  },
+  dayLabelText: {
+    fontSize: 12,
+    fontWeight: '500',
+    color: '#9CA3AF',
+  },
+  emptyDay: {
+    width: '13%',
+  },
+  dayButton: {
+    width: '13%',
+    aspectRatio: 1,
+    borderRadius: 12,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: 'transparent',
+  },
+  dayButtonToday: {
+    backgroundColor: '#4F46E5',
+  },
+  dayText: {
+    fontSize: 14,
+    color: '#374151',
+  },
+  dayTextToday: {
+    color: '#FFFFFF',
+    fontWeight: 'bold',
+  },
+  dayTextEmpty: {
+    opacity: 0.5,
+  },
+  moodDot: {
+    position: 'absolute',
+    bottom: 4,
+    width: 6,
+    height: 6,
+    borderRadius: 3,
+  },
+  recentSection: {
+    padding: 24,
+  },
+  recentTitle: {
+    fontSize: 18,
+
+    fontWeight: 'bold',
+    color: '#1F2937',
+    marginBottom: 16,
+  },
+  entryCard: {
+    backgroundColor: '#FFFFFF',
+    padding: 16,
+    borderRadius: 16,
+    marginBottom: 12,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 16,
+    borderWidth: 1,
+    borderColor: '#F3F4F6',
+  },
+  moodIconContainer: {
+    width: 48,
+    height: 48,
+    borderRadius: 16,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  entryContent: {
+    flex: 1,
+  },
+  entryHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'flex-start',
+    marginBottom: 4,
+  },
+  entrySummary: {
+    fontSize: 14,
+    fontWeight: 'bold',
+    color: '#1F2937',
+    flex: 1,
+  },
+  entryDate: {
+    fontSize: 12,
+    color: '#9CA3AF',
+  },
+  entryMeta: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  entryType: {
+    paddingHorizontal: 8,
+    paddingVertical: 2,
+    borderRadius: 6,
+  },
+  entryTypeText: {
+    fontSize: 12,
+    fontWeight: '500',
+  },
+  entryMetaDivider: {
+    fontSize: 12,
+    color: '#D1D5DB',
+  },
+  entryMood: {
+    fontSize: 12,
+    color: '#6B7280',
+  },
+});
 
 export default HomeScreen;

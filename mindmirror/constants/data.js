@@ -1,11 +1,31 @@
 import React from 'react';
-import { Smile, Meh, Frown, Activity } from 'lucide-react';
+import { Ionicons } from '@expo/vector-icons';
 
 export const MOODS = {
-  happy: { icon: <Smile className="w-5 h-5" />, color: 'bg-yellow-100 text-yellow-600', label: '행복' },
-  neutral: { icon: <Meh className="w-5 h-5" />, color: 'bg-gray-100 text-gray-600', label: '평온' },
-  sad: { icon: <Frown className="w-5 h-5" />, color: 'bg-blue-100 text-blue-600', label: '우울' },
-  stressed: { icon: <Activity className="w-5 h-5" />, color: 'bg-red-100 text-red-600', label: '스트레스' },
+  happy: {
+    icon: <Ionicons name="happy" size={20} color="#F59E0B" />,
+    color: '#FEF3C7',
+    textColor: '#D97706',
+    label: '행복',
+  },
+  neutral: {
+    icon: <Ionicons name="remove-circle" size={20} color="#6B7280" />,
+    color: '#F3F4F6',
+    textColor: '#4B5563',
+    label: '평온',
+  },
+  sad: {
+    icon: <Ionicons name="sad" size={20} color="#3B82F6" />,
+    color: '#DBEAFE',
+    textColor: '#2563EB',
+    label: '우울',
+  },
+  stressed: {
+    icon: <Ionicons name="flash" size={20} color="#EF4444" />,
+    color: '#FEE2E2',
+    textColor: '#DC2626',
+    label: '스트레스',
+  },
 };
 
 export const INITIAL_ENTRIES = [
@@ -19,7 +39,7 @@ export const INITIAL_ENTRIES = [
 export const WEEKLY_STATS = [
   { day: '월', score: 60 },
   { day: '화', score: 45 },
-  { day: '수', score: 30 }, // High stress
+  { day: '수', score: 30 },
   { day: '목', score: 70 },
   { day: '금', score: 85 },
   { day: '토', score: 90 },
@@ -27,8 +47,8 @@ export const WEEKLY_STATS = [
 ];
 
 export const KEYWORDS = [
-  { word: '해커톤', count: 15, color: 'bg-indigo-100 text-indigo-700' },
-  { word: '팀플', count: 12, color: 'bg-red-100 text-red-700' },
-  { word: '커피', count: 8, color: 'bg-amber-100 text-amber-700' },
-  { word: '수면', count: 5, color: 'bg-blue-100 text-blue-700' },
+  { word: '해커톤', count: 15, color: '#E0E7FF', textColor: '#4338CA' },
+  { word: '팀플', count: 12, color: '#FEE2E2', textColor: '#DC2626' },
+  { word: '커피', count: 8, color: '#FEF3C7', textColor: '#D97706' },
+  { word: '수면', count: 5, color: '#DBEAFE', textColor: '#2563EB' },
 ];

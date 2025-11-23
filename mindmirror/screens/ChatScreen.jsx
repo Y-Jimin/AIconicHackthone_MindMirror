@@ -1,92 +1,341 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Send, Sparkles } from 'lucide-react';
+import {
+  View,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  ScrollView,
+  StyleSheet,
+  KeyboardAvoidingView,
+  Platform,
+  Alert,
+  ActivityIndicator,
+} from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
+import { diaryAPI } from '../services/api';
 
-const ChatScreen = ({ onFinish }) => {
+const ChatScreen = ({ onFinish, userId }) => {
+  // 세션 ID 생성 (채팅 세션별로 고유)
+  const [sessionId] = useState(() => `session-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`);
+  
   const [messages, setMessages] = useState([
-    { id: 1, sender: 'ai', text: '안녕하세요, 민수님! 오늘 하루는 어떠셨나요? 특별히 기억에 남는 일이 있으신가요? 😊' }
+    {
+      id: 1,
+      sender: 'ai',
+      text: '안녕하세요! 오늘 하루는 어떠셨나요? 특별히 기억에 남는 일이 있으신가요? 😊',
+      role: 'assistant',
+    },
   ]);
   const [input, setInput] = useState('');
   const [isTyping, setIsTyping] = useState(false);
-  const scrollRef = useRef(null);
+  const [isLoading, setIsLoading] = useState(false);
+  const scrollViewRef = useRef(null);
 
   useEffect(() => {
-    if (scrollRef.current) {
-      scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
+    if (scrollViewRef.current) {
+      scrollViewRef.current.scrollToEnd({ animated: true });
     }
   }, [messages, isTyping]);
 
-  const handleSend = () => {
-    if (!input.trim()) return;
-    const newMsg = { id: Date.now(), sender: 'user', text: input };
-    setMessages(prev => [...prev, newMsg]);
+  const handleSend = async () => {
+    if (!input.trim() || isLoading) return;
+
+    const userMessage = input.trim();
+    const newMsg = {
+      id: Date.now(),
+      sender: 'user',
+      text: userMessage,
+      role: 'user',
+      timestamp: new Date().toISOString(),
+    };
+
+    // 사용자 메시지를 먼저 화면에 표시
+    setMessages((prev) => [...prev, newMsg]);
     setInput('');
     setIsTyping(true);
+    setIsLoading(true);
 
-    // Simulate AI Response
-    setTimeout(() => {
+    try {
+      // Gemini API 호출 (sessionId 전달, 서버에서 DB에서 히스토리 가져옴)
+      const response = await diaryAPI.sendChatMessage(
+        userId || 'default-user',
+        userMessage,
+        sessionId
+      );
+
       setIsTyping(false);
-      setMessages(prev => [...prev, { 
-        id: Date.now() + 1, 
-        sender: 'ai', 
-        text: '아, 그러셨군요. 해커톤 준비 때문에 많이 바쁘셨겠어요. 스트레스를 받으시진 않았나요?' 
-      }]);
-    }, 1500);
+      setIsLoading(false);
+
+      if (response.success && response.data && response.data.response) {
+        const aiMessage = {
+          id: Date.now() + 1,
+          sender: 'ai',
+          text: response.data.response,
+          role: 'assistant',
+          timestamp: new Date().toISOString(),
+        };
+        setMessages((prev) => [...prev, aiMessage]);
+      } else {
+        throw new Error('AI 응답을 받지 못했습니다.');
+      }
+    } catch (error) {
+      setIsTyping(false);
+      setIsLoading(false);
+      console.error('Chat API Error:', error);
+      
+      // 에러 메시지 제거하고 사용자에게 알림
+      setMessages((prev) => prev.filter((msg) => msg.id !== newMsg.id));
+      
+      Alert.alert(
+        '오류',
+        error.message || '메시지 전송에 실패했습니다. 잠시 후 다시 시도해주세요.',
+        [{ text: '확인' }]
+      );
+    }
+  };
+
+  const handleFinish = async () => {
+    try {
+      if (messages.length <= 1) {
+        // 대화가 없으면 그냥 종료
+        if (onFinish) onFinish(false);
+        return;
+      }
+
+      // 대화 저장 (sessionId 사용, 서버에서 Chat 테이블에서 가져옴)
+      setIsLoading(true);
+      const response = await diaryAPI.saveChatDiary(
+        userId || 'default-user',
+        sessionId
+      );
+      setIsLoading(false);
+
+      if (response.success && onFinish) {
+        // 저장 성공 시 콜백 호출 (홈 화면 새로고침을 위해)
+        onFinish(true);
+      } else if (onFinish) {
+        onFinish(false);
+      }
+    } catch (error) {
+      setIsLoading(false);
+      console.error('Save Chat Error:', error);
+      Alert.alert(
+        '저장 오류',
+        error.message || '대화 저장에 실패했습니다.',
+        [{ text: '확인', onPress: () => onFinish && onFinish(false) }]
+      );
+    }
   };
 
   return (
-    <div className="flex flex-col h-full bg-slate-50">
-      <div className="flex-1 overflow-y-auto p-4 space-y-4 pb-20" ref={scrollRef}>
+    <KeyboardAvoidingView
+      style={styles.container}
+      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+      keyboardVerticalOffset={90}
+    >
+      <ScrollView
+        ref={scrollViewRef}
+        style={styles.messagesContainer}
+        contentContainerStyle={styles.messagesContent}
+      >
         {messages.map((msg) => (
-          <div key={msg.id} className={`flex ${msg.sender === 'user' ? 'justify-end' : 'justify-start'}`}>
+          <View
+            key={msg.id}
+            style={[
+              styles.messageRow,
+              msg.sender === 'user' && styles.messageRowUser,
+            ]}
+          >
             {msg.sender === 'ai' && (
-              <div className="w-8 h-8 rounded-full bg-indigo-100 flex items-center justify-center mr-2 flex-shrink-0">
-                <Sparkles size={14} className="text-indigo-600" />
-              </div>
+              <View style={styles.aiAvatar}>
+                <Ionicons name="sparkles" size={14} color="#4F46E5" />
+              </View>
             )}
-            <div className={`max-w-[75%] p-3.5 rounded-2xl text-sm leading-relaxed shadow-sm ${
-              msg.sender === 'user' 
-                ? 'bg-indigo-600 text-white rounded-br-none' 
-                : 'bg-white text-gray-700 rounded-tl-none border border-gray-100'
-            }`}>
-              {msg.text}
-            </div>
-          </div>
+            <View
+              style={[
+                styles.messageBubble,
+                msg.sender === 'user'
+                  ? styles.messageBubbleUser
+                  : styles.messageBubbleAi,
+              ]}
+            >
+              <Text
+                style={[
+                  styles.messageText,
+                  msg.sender === 'user' && styles.messageTextUser,
+                ]}
+              >
+                {msg.text}
+              </Text>
+            </View>
+          </View>
         ))}
         {isTyping && (
-          <div className="flex justify-start">
-             <div className="w-8 h-8 rounded-full bg-indigo-100 flex items-center justify-center mr-2">
-                <Sparkles size={14} className="text-indigo-600" />
-              </div>
-            <div className="bg-white p-4 rounded-2xl rounded-tl-none border border-gray-100 shadow-sm">
-              <div className="flex space-x-1">
-                <div className="w-2 h-2 bg-gray-300 rounded-full animate-bounce" style={{ animationDelay: '0s' }} />
-                <div className="w-2 h-2 bg-gray-300 rounded-full animate-bounce" style={{ animationDelay: '0.2s' }} />
-                <div className="w-2 h-2 bg-gray-300 rounded-full animate-bounce" style={{ animationDelay: '0.4s' }} />
-              </div>
-            </div>
-          </div>
+          <View style={styles.messageRow}>
+            <View style={styles.aiAvatar}>
+              <Ionicons name="sparkles" size={14} color="#4F46E5" />
+            </View>
+            <View style={[styles.messageBubble, styles.messageBubbleAi]}>
+              {isLoading ? (
+                <ActivityIndicator size="small" color="#4F46E5" />
+              ) : (
+                <View style={styles.typingIndicator}>
+                  <View style={[styles.typingDot, { animationDelay: '0s' }]} />
+                  <View style={[styles.typingDot, { animationDelay: '0.2s' }]} />
+                  <View style={[styles.typingDot, { animationDelay: '0.4s' }]} />
+                </View>
+              )}
+            </View>
+          </View>
         )}
-      </div>
-      
-      <div className="bg-white p-4 border-t border-gray-100 flex items-center gap-2 absolute bottom-0 w-full">
-        <input 
-          type="text" 
+      </ScrollView>
+
+      <View style={styles.inputContainer}>
+        <TextInput
+          style={styles.input}
           value={input}
-          onChange={(e) => setInput(e.target.value)}
-          onKeyPress={(e) => e.key === 'Enter' && handleSend()}
+          onChangeText={setInput}
           placeholder="메시지를 입력하세요..."
-          className="flex-1 bg-gray-100 rounded-full px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+          placeholderTextColor="#9CA3AF"
+          multiline
+          onSubmitEditing={handleSend}
         />
-        <button 
-          onClick={handleSend}
-          disabled={!input.trim()}
-          className={`p-3 rounded-full transition-colors ${input.trim() ? 'bg-indigo-600 text-white shadow-md' : 'bg-gray-200 text-gray-400'}`}
+        <TouchableOpacity
+          onPress={handleSend}
+          disabled={!input.trim() || isLoading}
+          style={[
+            styles.sendButton,
+            (!input.trim() || isLoading) && styles.sendButtonDisabled,
+          ]}
         >
-          <Send size={20} />
-        </button>
-      </div>
-    </div>
+          {isLoading ? (
+            <ActivityIndicator size="small" color="#FFFFFF" />
+          ) : (
+            <Ionicons
+              name="send"
+              size={20}
+              color={input.trim() ? '#FFFFFF' : '#9CA3AF'}
+            />
+          )}
+        </TouchableOpacity>
+        {messages.length > 1 && (
+          <TouchableOpacity
+            onPress={handleFinish}
+            style={styles.finishButton}
+            disabled={isLoading}
+          >
+            <Text style={styles.finishButtonText}>저장하고 종료</Text>
+          </TouchableOpacity>
+        )}
+      </View>
+    </KeyboardAvoidingView>
   );
 };
+
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+    backgroundColor: '#F8FAFC',
+  },
+  messagesContainer: {
+    flex: 1,
+  },
+  messagesContent: {
+    padding: 16,
+    paddingBottom: 100,
+    gap: 16,
+  },
+  messageRow: {
+    flexDirection: 'row',
+    alignItems: 'flex-end',
+    justifyContent: 'flex-start',
+  },
+  messageRowUser: {
+    justifyContent: 'flex-end',
+  },
+  aiAvatar: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    backgroundColor: '#E0E7FF',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginRight: 8,
+  },
+  messageBubble: {
+    maxWidth: '75%',
+    padding: 14,
+    borderRadius: 16,
+  },
+  messageBubbleUser: {
+    backgroundColor: '#4F46E5',
+    borderBottomRightRadius: 4,
+  },
+  messageBubbleAi: {
+    backgroundColor: '#FFFFFF',
+    borderTopLeftRadius: 4,
+    borderWidth: 1,
+    borderColor: '#F3F4F6',
+  },
+  messageText: {
+    fontSize: 14,
+    lineHeight: 20,
+    color: '#374151',
+  },
+  messageTextUser: {
+    color: '#FFFFFF',
+  },
+  typingIndicator: {
+    flexDirection: 'row',
+    gap: 4,
+  },
+  typingDot: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+    backgroundColor: '#D1D5DB',
+  },
+  inputContainer: {
+    backgroundColor: '#FFFFFF',
+    padding: 16,
+    borderTopWidth: 1,
+    borderTopColor: '#F3F4F6',
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+  },
+  input: {
+    flex: 1,
+    backgroundColor: '#F3F4F6',
+    borderRadius: 24,
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    fontSize: 14,
+    maxHeight: 100,
+  },
+  sendButton: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: '#4F46E5',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  sendButtonDisabled: {
+    backgroundColor: '#E5E7EB',
+  },
+  finishButton: {
+    marginLeft: 8,
+    paddingHorizontal: 12,
+    paddingVertical: 12,
+    borderRadius: 12,
+    backgroundColor: '#10B981',
+  },
+  finishButtonText: {
+    color: '#FFFFFF',
+    fontSize: 12,
+    fontWeight: '600',
+  },
+});
 
 export default ChatScreen;
